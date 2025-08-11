@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     default_llm: str = "openai"
     
     # MCP Server Connection
-    mcp_server_url: str = "https://web-production-66f9.up.railway.app"
+    mcp_server_url: str = "http://localhost:8000"  # Use local server for testing financial features
     mcp_server_timeout: int = 30
     
     # Agent Configuration

@@ -33,6 +33,12 @@ class CommuteInput(BaseModel):
     mode: str = Field(default="driving", description="Transport mode: 'driving', 'transit', 'bicycling', 'walking'")
 
 
+class FinancialInput(BaseModel):
+    """Input schema for financial tool."""
+    symbols: list = Field(description="List of stock/crypto symbols like ['MSFT', 'BTC', 'ETH']")
+    data_type: str = Field(default="mixed", description="Type: 'stocks', 'crypto', or 'mixed'")
+
+
 class WeatherTool(BaseTool):
     """Tool to get weather forecasts."""
     
@@ -172,6 +178,57 @@ class CommuteTool(BaseTool):
         return asyncio.run(self._arun(origin, destination, mode))
 
 
+class FinancialTool(BaseTool):
+    """Tool to get financial data for stocks and cryptocurrencies."""
+    
+    name: str = "get_financial_data"
+    description: str = "Get financial data for stocks and cryptocurrencies. Use for portfolio updates, market info, or investment tracking."
+    args_schema: Type[BaseModel] = FinancialInput
+    
+    def _get_mcp_client(self) -> MCPClient:
+        """Get MCP client instance."""
+        return MCPClient()
+    
+    async def _arun(self, symbols: list, data_type: str = "mixed") -> str:
+        """Get financial data."""
+        try:
+            client = self._get_mcp_client()
+            data = await client.call_tool("financial.get_data", {"symbols": symbols, "data_type": data_type})
+            
+            if 'data' in data:
+                financial_items = data['data']
+                summary = data.get('summary', '')
+                
+                # Format the response
+                result_parts = [f"💰 Financial Update: {summary}"]
+                
+                for item in financial_items:
+                    symbol = item['symbol']
+                    name = item['name']
+                    price = item['price']
+                    change = item['change']
+                    change_percent = item['change_percent']
+                    
+                    # Format change with appropriate emoji
+                    if change >= 0:
+                        change_str = f"📈 +${change:.2f} (+{change_percent:.1f}%)"
+                    else:
+                        change_str = f"📉 ${change:.2f} ({change_percent:.1f}%)"
+                    
+                    result_parts.append(f"{symbol} ({name}): ${price:.2f} {change_str}")
+                
+                return "\\n".join(result_parts)
+            else:
+                return f"Financial data: {data.get('summary', 'No data available')}"
+                
+        except Exception as e:
+            return f"Error getting financial data: {str(e)}"
+    
+    def _run(self, symbols: list, data_type: str = "mixed") -> str:
+        """Sync wrapper for async call."""
+        return asyncio.run(self._arun(symbols, data_type))
+
+
 class MorningBriefingTool(BaseTool):
     """Tool to get a complete morning briefing."""
     
@@ -189,6 +246,12 @@ class MorningBriefingTool(BaseTool):
             client = self._get_mcp_client()
             data = await client.get_all_morning_data(today)
             
+            # Get financial data for your tracked symbols
+            financial_data = await client.call_tool("financial.get_data", {
+                "symbols": ["MSFT", "NVDA", "BTC", "ETH", "VOO", "SMR", "GOOGL"],
+                "data_type": "mixed"
+            })
+            
             # Format the briefing
             weather = data.get('weather', {})
             calendar = data.get('calendar', {})
@@ -201,6 +264,10 @@ class MorningBriefingTool(BaseTool):
                 f"✅ Todos: {todos.get('pending_count', 0)} pending tasks",
                 f"🚗 Commute: {commute.get('duration', 'N/A')} to {commute.get('destination', 'office')}"
             ]
+            
+            # Add financial summary
+            if financial_data and 'summary' in financial_data:
+                briefing_parts.append(f"💰 Markets: {financial_data['summary']}")
             
             return "Morning Briefing:\\n" + "\\n".join(briefing_parts)
         except Exception as e:
@@ -218,5 +285,6 @@ def get_all_tools():
         CalendarTool(),
         TodoTool(),
         CommuteTool(),
+        FinancialTool(),
         MorningBriefingTool()
     ]

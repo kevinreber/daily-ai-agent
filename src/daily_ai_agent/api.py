@@ -392,6 +392,113 @@ def create_app(testing: bool = False) -> Flask:
             logger.error(f"Commute error: {e}")
             return jsonify({"error": str(e)}), 500
     
+    @app.route('/tools/financial', methods=['POST'])
+    async def get_financial():
+        """Get real-time stock and cryptocurrency market data
+        ---
+        tags:
+          - Tools
+        parameters:
+          - name: body
+            in: body
+            required: true
+            schema:
+              type: object
+              required:
+                - symbols
+              properties:
+                symbols:
+                  type: array
+                  items:
+                    type: string
+                  example: ["MSFT", "BTC", "ETH"]
+                  description: "List of stock/crypto symbols to fetch"
+                data_type:
+                  type: string
+                  enum: ['stocks', 'crypto', 'mixed']
+                  default: 'mixed'
+                  description: "Type of financial data to retrieve"
+        responses:
+          200:
+            description: Financial market data
+            schema:
+              type: object
+              properties:
+                tool:
+                  type: string
+                  example: "financial"
+                data:
+                  type: object
+                  properties:
+                    summary:
+                      type: string
+                      example: "📊 3 instruments tracked | 📈 2 gaining | 🏆 Best: BTC (+2.3%)"
+                    total_items:
+                      type: integer
+                      example: 3
+                    market_status:
+                      type: string
+                      example: "mixed"
+                    data:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          symbol:
+                            type: string
+                            example: "MSFT"
+                          name:
+                            type: string
+                            example: "Microsoft Corporation"
+                          price:
+                            type: number
+                            example: 522.04
+                          change:
+                            type: number
+                            example: 1.2
+                          change_percent:
+                            type: number
+                            example: 0.23
+                          currency:
+                            type: string
+                            example: "USD"
+                          data_type:
+                            type: string
+                            example: "stocks"
+                timestamp:
+                  type: string
+          400:
+            description: Invalid request format
+          500:
+            description: Server error
+        """
+        try:
+            data = request.get_json()
+            if not data or 'symbols' not in data:
+                return jsonify({"error": "Missing 'symbols' field in request body"}), 400
+            
+            symbols = data['symbols']
+            data_type = data.get('data_type', 'mixed')
+            
+            if not isinstance(symbols, list) or not symbols:
+                return jsonify({"error": "'symbols' must be a non-empty array"}), 400
+            
+            logger.info(f"Financial request: {symbols} ({data_type})")
+            financial_data = await mcp_client.call_tool("financial.get_data", {
+                "symbols": symbols,
+                "data_type": data_type
+            })
+            
+            return jsonify({
+                "tool": "financial",
+                "data": financial_data,
+                "timestamp": datetime.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f"Financial error: {e}")
+            return jsonify({"error": str(e)}), 500
+    
     @app.route('/tools', methods=['GET'])
     def list_tools():
         """List all available tools and their endpoints."""
@@ -420,6 +527,12 @@ def create_app(testing: bool = False) -> Flask:
                     "method": "GET",
                     "description": "Get commute information", 
                     "params": ["origin", "destination", "mode"]
+                },
+                "financial": {
+                    "endpoint": "/tools/financial",
+                    "method": "POST",
+                    "description": "Get real-time stock and crypto prices",
+                    "params": ["symbols", "data_type"]
                 }
             },
             "ai_features": {
