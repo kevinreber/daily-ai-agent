@@ -24,13 +24,16 @@ dependencies = [
     "rich>=13.0.0",
     "typer>=0.9.0",
     
+    # Web API framework (same as MCP server)
+    "flask[async]==3.0.0",
+    "flask-cors==4.0.0",
+    "flask-limiter==3.5.0",
+    
     # Date/time handling
     "python-dateutil>=2.8.0",
     
     # Environment variables
     "python-dotenv>=1.0.0",
-    
-
     
     # Logging
     "loguru>=0.7.0",
@@ -38,6 +41,7 @@ dependencies = [
 
 [project.scripts]
 daily-ai-agent = "daily_ai_agent:main"
+daily-ai-agent-api = "daily_ai_agent.api_server:main"
 
 [build-system]
 requires = ["hatchling"]
