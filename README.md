@@ -1,10 +1,10 @@
 # 🤖 Morning Routine AI Agent
 
-An intelligent AI agent that provides personalized morning briefings by orchestrating tools from your deployed [MCP server](../daily-mcp-server/). Combines **real weather data** with **calendar, todos, and commute information** to create comprehensive morning summaries.
+An intelligent AI agent that provides personalized morning briefings by orchestrating tools from your deployed [MCP server](../daily-mcp-server/). Combines **real weather data**, **live financial markets**, **calendar, todos, and commute information** to create comprehensive morning summaries.
 
 🎯 **What makes this special?** This isn't just another chatbot - it's a **production-ready AI system** that demonstrates:
 
-- **Real API integration** (OpenWeatherMap) with **realistic mock data**
+- **Real API integration** (OpenWeatherMap, Alpha Vantage, CoinGecko) with **realistic mock data**
 - **LangChain tool orchestration** with **parallel execution** for speed
 - **Natural language conversations** that **intelligently select tools**
 - **Beautiful CLI interface** with **structured output**
@@ -13,6 +13,7 @@ An intelligent AI agent that provides personalized morning briefings by orchestr
 ## ✨ Features
 
 - 🌤️ **Real Weather Data** - Live forecasts from OpenWeatherMap
+- 💰 **Live Financial Markets** - Real-time stocks & crypto from Alpha Vantage & CoinGecko
 - ✅ **Smart Todo Management** - Prioritized task lists
 - 📅 **Calendar Integration** - Today's events and meetings
 - 🚗 **Commute Information** - Travel time and route suggestions
@@ -126,6 +127,8 @@ $ uv run daily-ai-agent smart-briefing
 │                                                                                                          │
 │ 🚗 **Commute**: Since you have no events today, there's no commute information needed for the office.    │
 │                                                                                                          │
+│ 💰 **Markets**: 7 instruments tracked | 📈 4 gaining | 📉 3 declining | 🏆 Best: BTC (+4.2%)           │
+│                                                                                                          │
 │ Looks like you have a great day ahead with plenty of time to focus on your tasks! Let me know if you     │
 │ need help with anything specific.                                                                        │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────╯
@@ -144,6 +147,7 @@ Assistant: Here's your morning briefing, Kevin:
 📅 **Calendar**: 0 events today
 ✅ **Todos**: 3 pending tasks
 🚗 **Commute**: N/A to office
+💰 **Markets**: 7 instruments tracked | 📈 4 gaining | 📉 3 declining | 🏆 Best: BTC (+4.2%)
 
 Let me know if you need help with anything specific!
 
@@ -152,6 +156,12 @@ $ uv run daily-ai-agent chat -m "Should I wear a jacket today?"
 You: Should I wear a jacket today?
 🤖 Thinking...
 Assistant: Today in San Francisco, the weather is expected to be warm with a high of 77.4°F and a low of 56.6°F. Since it's a bit on the warmer side, you might not need a jacket, but it could be a good idea to have one handy for the cooler morning or evening.
+
+$ uv run daily-ai-agent chat -m "How's Microsoft stock doing?"
+
+You: How's Microsoft stock doing?
+🤖 Thinking...
+Assistant: The current price of Microsoft (MSFT) is $522.04, up by $1.20 (+0.2%). Looking good with a slight upward trend today!
 ```
 
 ### 📊 Individual Tool Output
@@ -184,6 +194,19 @@ $ uv run daily-ai-agent todos
 └───────────────────────────┴──────────┴───────────────────────────────┘
 📊 Total: 3 items, 3 pending
 
+# Financial data with real market prices
+$ uv run daily-ai-agent chat -m "Show me MSFT, BTC, and ETH prices"
+
+You: Show me MSFT, BTC, and ETH prices
+🤖 Thinking...
+Assistant: Here's the latest financial update:
+
+- **Microsoft Corporation (MSFT)**: $522.04 (+$1.20, +0.2%)
+- **Bitcoin (BTC)**: $119,483.00 (+$961.16, +0.8%)
+- **Ethereum (ETH)**: $4,282.23 (+$57.58, +1.3%)
+
+Let me know if you need anything else!
+
 # Health check
 $ uv run daily-ai-agent health
 ✅ MCP Server is healthy!
@@ -197,9 +220,10 @@ $ uv run daily-ai-agent health
 │   (This Project)   │                 │   (Railway Deployed) │
 │                     │                 │                      │
 │ • CLI Interface     │                 │ • Weather API        │
-│ • Tool Orchestrator │                 │ • Calendar (Mock)    │
-│ • LangChain Agent   │                 │ • Todos (Mock)       │
-│ • OpenAI ChatGPT    │                 │ • Mobility (Mock)    │
+│ • Tool Orchestrator │                 │ • Financial API      │
+│ • LangChain Agent   │                 │ • Calendar (Mock)    │
+│ • OpenAI ChatGPT    │                 │ • Todos (Mock)       │
+│                     │                 │ • Mobility (Mock)    │
 └─────────────────────┘                 └──────────────────────┘
 ```
 
