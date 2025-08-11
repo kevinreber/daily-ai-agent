@@ -6,6 +6,7 @@ from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flasgger import Swagger, swag_from
 from werkzeug.exceptions import BadRequest, InternalServerError
 from loguru import logger
 from typing import Dict, Any, Optional
@@ -30,6 +31,42 @@ def create_app(testing: bool = False) -> Flask:
         default_limits=[f"{settings.rate_limit_per_minute} per minute"]
     )
     
+    # Configure Swagger UI
+    swagger_config = {
+        "headers": [],
+        "specs": [
+            {
+                "endpoint": 'apispec_1',
+                "route": '/apispec_1.json',
+                "rule_filter": lambda rule: True,
+                "model_filter": lambda tag: True,
+            }
+        ],
+        "static_url_path": "/flasgger_static",
+        "swagger_ui": True,
+        "specs_route": "/docs"
+    }
+    
+    swagger_template = {
+        "swagger": "2.0",
+        "info": {
+            "title": "Daily AI Agent API",
+            "description": "Intelligent morning routine assistant with conversational AI",
+            "contact": {
+                "responsibleOrganization": "Personal Learning Project",
+                "responsibleDeveloper": "Kevin Reber",
+            },
+            "version": "0.1.0"
+        },
+        "host": "localhost:8001" if settings.environment == "development" else None,
+        "basePath": "/",
+        "schemes": ["http"] if settings.environment == "development" else ["https"],
+        "produces": ["application/json"],
+        "consumes": ["application/json"]
+    }
+    
+    swagger = Swagger(app, config=swagger_config, template=swagger_template)
+    
     # Initialize services
     orchestrator = AgentOrchestrator()
     mcp_client = MCPClient()
@@ -48,7 +85,32 @@ def create_app(testing: bool = False) -> Flask:
     
     @app.route('/health', methods=['GET'])
     def health_check():
-        """Health check endpoint."""
+        """Health check endpoint.
+        ---
+        tags:
+          - System
+        responses:
+          200:
+            description: Service health status
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: "healthy"
+                service:
+                  type: string
+                  example: "Daily AI Agent API"
+                version:
+                  type: string
+                  example: "0.1.0"
+                ai_enabled:
+                  type: boolean
+                  example: true
+                mcp_server:
+                  type: string
+                  example: "https://web-production-66f9.up.railway.app"
+        """
         return jsonify({
             "status": "healthy",
             "service": "Daily AI Agent API",
@@ -61,10 +123,39 @@ def create_app(testing: bool = False) -> Flask:
     @app.route('/chat', methods=['POST'])
     @limiter.limit("10 per minute")
     async def chat():
-        """
-        Natural language conversation endpoint.
-        
-        Body: {"message": "What's my day looking like?"}
+        """Natural language conversation with AI assistant
+        ---
+        tags:
+          - AI Features
+        parameters:
+          - name: body
+            in: body
+            required: true
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                  example: "What's my day looking like?"
+                  description: "Natural language query to the AI assistant"
+        responses:
+          200:
+            description: AI assistant response
+            schema:
+              type: object
+              properties:
+                response:
+                  type: string
+                  example: "Today you should focus on your 3 pending tasks. Weather is nice at 77°F!"
+                timestamp:
+                  type: string
+                  example: "2025-08-11T00:16:05.255826"
+          400:
+            description: Invalid request format
+          503:
+            description: AI features not available (missing OpenAI API key)
         """
         try:
             data = request.get_json()
@@ -98,11 +189,33 @@ def create_app(testing: bool = False) -> Flask:
     @app.route('/briefing', methods=['GET'])
     @limiter.limit("20 per minute")
     async def briefing():
-        """
-        Get AI-powered morning briefing.
-        
-        Query params:
-        - type: 'basic' (default) or 'smart' (AI-powered)
+        """Get morning briefing (basic data or AI-powered)
+        ---
+        tags:
+          - AI Features
+        parameters:
+          - name: type
+            in: query
+            type: string
+            enum: ['basic', 'smart']
+            default: 'basic'
+            description: "Type of briefing: 'basic' (structured data) or 'smart' (AI-generated)"
+        responses:
+          200:
+            description: Morning briefing
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  example: "smart"
+                briefing:
+                  type: string
+                  example: "Good morning! Weather is 77°F, you have 3 pending tasks..."
+                timestamp:
+                  type: string
+          503:
+            description: Smart briefing not available (missing OpenAI API key)
         """
         try:
             briefing_type = request.args.get('type', 'basic').lower()
@@ -140,12 +253,49 @@ def create_app(testing: bool = False) -> Flask:
     
     @app.route('/tools/weather', methods=['GET'])
     async def get_weather():
-        """
-        Get weather forecast.
-        
-        Query params:
-        - location: Location name (default: user's location)
-        - when: 'today' or 'tomorrow' (default: 'today')
+        """Get weather forecast with real OpenWeatherMap data
+        ---
+        tags:
+          - Tools
+        parameters:
+          - name: location
+            in: query
+            type: string
+            default: "San Francisco"
+            description: "Location name (city, state/country)"
+            example: "San Francisco"
+          - name: when
+            in: query
+            type: string
+            enum: ['today', 'tomorrow']
+            default: 'today'
+            description: "Time period for forecast"
+        responses:
+          200:
+            description: Weather forecast data
+            schema:
+              type: object
+              properties:
+                tool:
+                  type: string
+                  example: "weather"
+                data:
+                  type: object
+                  properties:
+                    location:
+                      type: string
+                      example: "San Francisco, US"
+                    temp_hi:
+                      type: number
+                      example: 77.4
+                    temp_lo:
+                      type: number
+                      example: 57.1
+                    summary:
+                      type: string
+                      example: "Scattered Clouds"
+                timestamp:
+                  type: string
         """
         try:
             location = request.args.get('location', settings.user_location)
