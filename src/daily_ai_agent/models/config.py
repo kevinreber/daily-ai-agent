@@ -1,7 +1,7 @@
 """Configuration management for the AI agent."""
 
 from pydantic_settings import BaseSettings
-from typing import Optional
+from typing import Optional, List
 import os
 
 
@@ -22,6 +22,12 @@ class Settings(BaseSettings):
     enable_memory: bool = True
     debug: bool = False
     environment: str = "development"
+    
+    # Web Server Configuration
+    host: str = "0.0.0.0"
+    port: int = int(os.getenv("PORT", "8000"))  # Railway provides PORT env var
+    allowed_origins: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    rate_limit_per_minute: int = 60
     
     # User Preferences  
     user_name: str = "Kevin"
