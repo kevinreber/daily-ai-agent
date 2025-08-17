@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     default_llm: str = "openai"
     
     # MCP Server Connection
-    mcp_server_url: str = "http://localhost:8000"  # Use local server for testing financial features
+    mcp_server_url: str = "https://web-production-66f9.up.railway.app"  # Production MCP server
     mcp_server_timeout: int = 30
     
     # Agent Configuration
@@ -26,7 +26,12 @@ class Settings(BaseSettings):
     # Web Server Configuration
     host: str = "0.0.0.0"
     port: int = int(os.getenv("PORT", "8000"))  # Railway provides PORT env var
-    allowed_origins: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    allowed_origins: List[str] = [
+        "http://localhost:3000", 
+        "http://localhost:5173",
+        "http://localhost:5174",  # UI dev server alternate port
+        "https://daily-agent-ui.vercel.app"  # Production UI deployment
+    ]
     rate_limit_per_minute: int = 60
     
     # User Preferences  
