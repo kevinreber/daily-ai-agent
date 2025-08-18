@@ -15,6 +15,7 @@ Set these environment variables in your Railway AI Agent project dashboard:
 ```bash
 ENVIRONMENT=production
 LOG_LEVEL=INFO
+DEBUG=false
 ```
 
 ### **AI Model Configuration**

@@ -20,8 +20,8 @@ class Settings(BaseSettings):
     # Agent Configuration
     log_level: str = "INFO"
     enable_memory: bool = True
-    debug: bool = False
-    environment: str = "development"
+    debug: bool = os.getenv("DEBUG", "false").lower() == "true"  # Default to False for production
+    environment: str = os.getenv("ENVIRONMENT", "development")
     
     # Web Server Configuration
     host: str = os.getenv("HOST", "0.0.0.0")  # Default to 0.0.0.0 for production compatibility
