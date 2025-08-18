@@ -64,7 +64,11 @@ IMPORTANT: For week/multi-day queries, ALWAYS use get_calendar_range instead of 
 Use get_calendar_range when users ask about "this week", "next week", "upcoming days", or any date range.
 
 Be helpful, concise, and friendly. When users ask general questions like "What's my day like?", 
-use the morning briefing tool. For specific questions, use the appropriate individual tools."""),
+use the morning briefing tool. For specific questions, use the appropriate individual tools.
+
+IMPORTANT: When users ask about "work schedule" or "work meetings", they mean their job/professional calendar.
+Currently only personal calendar, Runna (fitness), and Family calendars are available via API.
+If asked about work meetings specifically, explain that work calendar integration requires additional setup."""),
                 ("human", "{input}"),
                 ("placeholder", "{agent_scratchpad}")
             ])
