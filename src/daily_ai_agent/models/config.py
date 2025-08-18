@@ -24,13 +24,15 @@ class Settings(BaseSettings):
     environment: str = "development"
     
     # Web Server Configuration
-    host: str = "0.0.0.0"
+    host: str = os.getenv("HOST", "0.0.0.0")  # Default to 0.0.0.0 for production compatibility
     port: int = int(os.getenv("PORT", "8001"))  # Default to 8001 to avoid conflict with MCP server
     allowed_origins: List[str] = [
         "http://localhost:3000", 
         "http://localhost:5173",
         "http://localhost:5174",  # UI dev server alternate port
-        "https://daily-agent-ui.vercel.app"  # Production UI deployment
+        "https://daily-agent-ui.vercel.app",  # Production UI deployment
+        "https://web-production-66f9.up.railway.app",  # Production MCP server
+        "https://web-production-f80730.up.railway.app"  # Production AI agent (self)
     ]
     rate_limit_per_minute: int = 60
     
