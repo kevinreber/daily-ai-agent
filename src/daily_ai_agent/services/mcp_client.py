@@ -73,6 +73,13 @@ class MCPClient:
             "date": date
         })
     
+    async def get_calendar_events_range(self, start_date: str, end_date: str) -> Dict[str, Any]:
+        """Get calendar events for a date range (more efficient than multiple single-date calls)."""
+        return await self.call_tool("calendar.list_events_range", {
+            "start_date": start_date,
+            "end_date": end_date
+        })
+    
     async def get_todos(self, bucket: str = "work", include_completed: bool = False) -> Dict[str, Any]:
         """Get todo items from a bucket."""
         return await self.call_tool("todo.list", {

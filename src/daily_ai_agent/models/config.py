@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     default_llm: str = "openai"
     
     # MCP Server Connection
-    mcp_server_url: str = "https://web-production-66f9.up.railway.app"  # Production MCP server
-    mcp_server_timeout: int = 30
+    mcp_server_url: str = "http://localhost:8000"  # Default to local development
+    mcp_server_timeout: int = 45  # Increased for Google Calendar API calls
     
     # Agent Configuration
     log_level: str = "INFO"
@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     
     # Web Server Configuration
     host: str = "0.0.0.0"
-    port: int = int(os.getenv("PORT", "8000"))  # Railway provides PORT env var
+    port: int = int(os.getenv("PORT", "8001"))  # Default to 8001 to avoid conflict with MCP server
     allowed_origins: List[str] = [
         "http://localhost:3000", 
         "http://localhost:5173",
