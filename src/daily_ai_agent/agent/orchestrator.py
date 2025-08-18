@@ -37,9 +37,15 @@ class AgentOrchestrator:
             )
             
             # Create the prompt template
+            from datetime import datetime
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            current_day = datetime.now().strftime("%A, %B %d, %Y")
+            
             prompt = ChatPromptTemplate.from_messages([
                 ("system", f"""You are {self.settings.user_name}'s personal morning assistant. 
 You help with their daily routine by providing weather, calendar, todo, and commute information.
+
+IMPORTANT: Today's date is {current_date} ({current_day}). When users ask about "today", "this morning", "my schedule", etc., use this date: {current_date}.
 
 User preferences:
 - Name: {self.settings.user_name}
@@ -48,13 +54,21 @@ User preferences:
 
 You have access to these tools:
 - get_weather: Get weather forecasts
-- get_calendar: Get calendar events  
+- get_calendar: Get calendar events for a single date (use YYYY-MM-DD format, today is {current_date})
+- get_calendar_range: Get calendar events for a date range (MUCH more efficient for week queries)
 - get_todos: Get todo/task lists
 - get_commute: Get travel information
 - get_morning_briefing: Get complete morning summary
 
+IMPORTANT: For week/multi-day queries, ALWAYS use get_calendar_range instead of multiple get_calendar calls. 
+Use get_calendar_range when users ask about "this week", "next week", "upcoming days", or any date range.
+
 Be helpful, concise, and friendly. When users ask general questions like "What's my day like?", 
-use the morning briefing tool. For specific questions, use the appropriate individual tools."""),
+use the morning briefing tool. For specific questions, use the appropriate individual tools.
+
+IMPORTANT: When users ask about "work schedule" or "work meetings", they mean their job/professional calendar.
+Currently only personal calendar, Runna (fitness), and Family calendars are available via API.
+If asked about work meetings specifically, explain that work calendar integration requires additional setup."""),
                 ("human", "{input}"),
                 ("placeholder", "{agent_scratchpad}")
             ])

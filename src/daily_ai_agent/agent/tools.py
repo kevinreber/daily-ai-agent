@@ -21,6 +21,12 @@ class CalendarInput(BaseModel):
     date: str = Field(description="Date to get events for in YYYY-MM-DD format")
 
 
+class CalendarRangeInput(BaseModel):
+    """Input schema for calendar range tool."""
+    start_date: str = Field(description="Start date of the range in YYYY-MM-DD format")
+    end_date: str = Field(description="End date of the range in YYYY-MM-DD format")
+
+
 class TodoInput(BaseModel):
     """Input schema for todo tool.""" 
     bucket: str = Field(default="work", description="Todo bucket: 'work', 'home', 'errands', or 'personal'")
@@ -101,6 +107,59 @@ class CalendarTool(BaseTool):
     def _run(self, date: str) -> str:
         """Sync wrapper for async call."""
         return asyncio.run(self._arun(date))
+
+
+class CalendarRangeTool(BaseTool):
+    """Tool to get calendar events for a date range (more efficient than multiple single-date calls)."""
+    
+    name: str = "get_calendar_range"
+    description: str = "Get calendar events for a date range. Use when users ask about their week, multiple days, or date ranges. Much more efficient than multiple single-date calls."
+    args_schema: Type[BaseModel] = CalendarRangeInput
+    
+    def _get_mcp_client(self) -> MCPClient:
+        """Get MCP client instance."""
+        return MCPClient()
+    
+    async def _arun(self, start_date: str, end_date: str) -> str:
+        """Get calendar events for a date range."""
+        try:
+            client = self._get_mcp_client()
+            data = await client.get_calendar_events_range(start_date, end_date)
+            events = data.get('events', [])
+            total = data.get('total_events', 0)
+            
+            if total == 0:
+                return f"No events scheduled from {start_date} to {end_date}"
+            
+            # Group events by date for better readability
+            events_by_date = {}
+            for event in events:
+                event_date = event.get('start_time', '')[:10]  # Extract YYYY-MM-DD
+                if event_date not in events_by_date:
+                    events_by_date[event_date] = []
+                events_by_date[event_date].append(event)
+            
+            result_lines = [f"{total} events from {start_date} to {end_date}:"]
+            for date, day_events in sorted(events_by_date.items()):
+                result_lines.append(f"\n{date}:")
+                for event in day_events[:3]:  # Show max 3 events per day
+                    time_str = event.get('start_time', '')
+                    if 'T' in time_str:
+                        time_part = time_str.split('T')[1][:5]  # Extract HH:MM
+                        result_lines.append(f"  - {event.get('title', 'N/A')} at {time_part}")
+                    else:
+                        result_lines.append(f"  - {event.get('title', 'N/A')} (all day)")
+                
+                if len(day_events) > 3:
+                    result_lines.append(f"  ... and {len(day_events) - 3} more")
+            
+            return "\\n".join(result_lines)
+        except Exception as e:
+            return f"Error getting calendar range: {str(e)}"
+    
+    def _run(self, start_date: str, end_date: str) -> str:
+        """Sync wrapper for async call."""
+        return asyncio.run(self._arun(start_date, end_date))
 
 
 class TodoTool(BaseTool):
@@ -283,6 +342,7 @@ def get_all_tools():
     return [
         WeatherTool(),
         CalendarTool(),
+        CalendarRangeTool(),
         TodoTool(),
         CommuteTool(),
         FinancialTool(),
