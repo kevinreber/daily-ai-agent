@@ -25,7 +25,7 @@ An intelligent AI agent that acts as your **personal productivity assistant**, o
 - **Smart conflict detection** → Warns about overlapping meetings
 - **Multi-calendar support** → Target work, personal, family calendars
 - **Natural language parsing** → Understands dates, times, and context
-- **🔜 Coming Soon**: *"Move my 2pm meeting to 3pm"* and *"Cancel my gym session"*
+- **🔜 Coming Soon**: _"Move my 2pm meeting to 3pm"_ and _"Cancel my gym session"_
 
 ### 📊 **Comprehensive Data Access**
 
