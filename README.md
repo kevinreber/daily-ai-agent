@@ -2,13 +2,14 @@
 
 An intelligent AI agent that acts as your **personal productivity assistant**, orchestrating tools from your deployed [MCP server](../daily-mcp-server/) to provide comprehensive daily management. Features both **information retrieval** and **action taking** capabilities.
 
-## 🎉 **NEW: Calendar Event Creation!**
+## 🚀 **NEW: Enhanced Calendar Intelligence!**
 
-✨ **Phase 1.5 Complete** - AI can now create calendar events through natural language!
+✨ **Phase 2.1 Foundation** - AI calendar functionality restored and MCP server upgraded with full Calendar CRUD!
 
 🎯 **What makes this special?** This isn't just another chatbot - it's a **production-ready AI assistant** that:
 
-- **Creates real calendar events** through conversational AI
+- **✅ FIXED: Calendar Reading** - Now properly reads and displays your real calendar events
+- **Creates real calendar events** through conversational AI (ready for update/delete)
 - **Orchestrates 8 specialized tools** with intelligent routing
 - **Provides smart conflict detection** when scheduling meetings
 - **Integrates live APIs** (Google Calendar, OpenWeatherMap, financial markets)
@@ -19,10 +20,12 @@ An intelligent AI agent that acts as your **personal productivity assistant**, o
 
 ### 🗣️ **Conversational Calendar Management**
 
+- **✅ "What's on my calendar tomorrow?"** → Now properly reads and displays your real events
 - **"Schedule lunch with John tomorrow at noon"** → Creates actual Google Calendar event
 - **Smart conflict detection** → Warns about overlapping meetings
 - **Multi-calendar support** → Target work, personal, family calendars
 - **Natural language parsing** → Understands dates, times, and context
+- **🔜 Coming Soon**: *"Move my 2pm meeting to 3pm"* and *"Cancel my gym session"*
 
 ### 📊 **Comprehensive Data Access**
 

@@ -5,6 +5,71 @@ All notable changes to the Daily AI Agent will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-08-20 - 🚀 **PHASE 2.1 FOUNDATION: Calendar Intelligence Enhanced**
+
+### 🎉 **MAJOR INFRASTRUCTURE: MCP Server Calendar CRUD Complete**
+
+- **Backend Calendar CRUD Ready**: Full Create, Read, Update, Delete operations available via MCP server
+- **Calendar Reading Bug Fixed**: AI assistant can now properly read and discover calendar events
+- **Production-Ready Calendar Integration**: Robust Google Calendar API integration ready for agent use
+- **Advanced Conflict Detection**: Enhanced calendar management capabilities prepared for AI integration
+
+### 🐛 **Critical Bug Fixes**
+
+- **Fixed Calendar Discovery**: AI assistant no longer reports "no events" when events exist
+- **Restored Calendar Visibility**: Calendar reading now works correctly after duplicate method resolution
+- **Improved Event Processing**: Calendar events properly converted and displayed to users
+
+### 📊 **Enhanced MCP Integration**
+
+- **MCP Server v0.3.0 Support**: Compatible with latest MCP server featuring full calendar CRUD
+- **Ready for Tool Expansion**: Infrastructure prepared for `update_calendar_event` and `delete_calendar_event` tools
+- **Improved Error Handling**: Better handling of calendar API responses and errors
+- **Enhanced Logging**: More detailed calendar operation logging for debugging
+
+### 🔧 **Agent Infrastructure Improvements**
+
+- **Stable Calendar Operations**: Reliable calendar reading and event creation
+- **Enhanced MCP Client**: Improved communication with upgraded MCP server
+- **Better Error Messages**: More informative calendar-related error responses
+- **Performance Optimization**: Reduced calendar initialization overhead
+
+### 🎯 **User Experience Fixes**
+
+**AI Assistant calendar functionality now works reliably:**
+- *"What's on my calendar tomorrow?"* ✅ **FIXED** (was showing no events)
+- *"Schedule a meeting with John"* ✅ (continues working)
+- *"Create a lunch appointment"* ✅ (continues working)
+
+### 🚀 **Ready for Phase 2.2**
+
+**Prepared infrastructure for upcoming features:**
+- Calendar update operations (update times, locations, attendees)
+- Calendar deletion operations (cancel meetings, remove events)
+- Smart scheduling suggestions
+- Natural language time parsing improvements
+
+### 📊 **Current Agent Tool Capabilities**
+
+1. **`get_weather`** - Weather forecasts and current conditions
+2. **`get_calendar`** - Single-date calendar events ✅ **FIXED**
+3. **`get_calendar_range`** - Multi-day calendar events ✅ **FIXED**
+4. **`create_calendar_event`** - Create new calendar events
+5. **`get_todos`** - Task management with bucket filtering
+6. **`get_commute`** - Travel times and route information
+7. **`get_financial_data`** - Stock and cryptocurrency prices
+8. **`get_morning_briefing`** - Comprehensive daily summary
+
+### 🔮 **Next Phase Preview**
+
+**Phase 2.2 will add:**
+- `update_calendar_event` - AI-powered calendar modifications
+- `delete_calendar_event` - Smart calendar event removal
+- Enhanced natural language time parsing
+- Proactive scheduling suggestions
+
+---
+
 ## [0.2.0] - 2025-08-20 - 🎉 **PHASE 1.5 COMPLETE: Calendar Creation Agent**
 
 ### 🚀 **Major Features Added**
