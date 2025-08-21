@@ -2,9 +2,9 @@
 
 An intelligent AI agent that acts as your **personal productivity assistant**, orchestrating tools from your deployed [MCP server](../daily-mcp-server/) to provide comprehensive daily management. Features both **information retrieval** and **action taking** capabilities.
 
-## 🚀 **NEW: Enhanced Calendar Intelligence!**
+## 🚀 **NEW: Smart Scheduling Intelligence!**
 
-✨ **Phase 2.1 Foundation** - AI calendar functionality restored and MCP server upgraded with full Calendar CRUD!
+✨ **Phase 2.2 In Progress** - AI-powered smart time finding and enhanced calendar intelligence!
 
 🎯 **What makes this special?** This isn't just another chatbot - it's a **production-ready AI assistant** that:
 
@@ -22,6 +22,8 @@ An intelligent AI agent that acts as your **personal productivity assistant**, o
 
 - **✅ "What's on my calendar tomorrow?"** → Now properly reads and displays your real events
 - **"Schedule lunch with John tomorrow at noon"** → Creates actual Google Calendar event
+- **🆕 "Find me 60 minutes free tomorrow afternoon"** → AI-powered smart time finding with preference scoring
+- **🆕 "When can I schedule a 2-hour deep work session this week?"** → Multi-day intelligent scheduling
 - **Smart conflict detection** → Warns about overlapping meetings
 - **Multi-calendar support** → Target work, personal, family calendars
 - **Natural language parsing** → Understands dates, times, and context
@@ -103,6 +105,7 @@ uv run daily-ai-agent smart-briefing    # AI-powered conversational briefing
 uv run daily-ai-agent chat -m "What's my day looking like?"
 uv run daily-ai-agent chat -m "Should I wear a jacket today?"
 uv run daily-ai-agent chat -m "Schedule lunch with John tomorrow at 1pm"  # 🆕 Calendar creation!
+uv run daily-ai-agent chat -m "Find me 90 minutes free tomorrow afternoon"  # 🆕 Smart time finding!
 uv run daily-ai-agent chat              # Interactive chat mode
 
 # Demo all features
