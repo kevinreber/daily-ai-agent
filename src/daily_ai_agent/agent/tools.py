@@ -27,6 +27,18 @@ class CalendarRangeInput(BaseModel):
     end_date: str = Field(description="End date of the range in YYYY-MM-DD format")
 
 
+class CalendarCreateInput(BaseModel):
+    """Input schema for calendar create tool."""
+    title: str = Field(description="Event title/summary")
+    start_time: str = Field(description="Event start time in ISO format (YYYY-MM-DDTHH:MM:SS)")
+    end_time: str = Field(description="Event end time in ISO format (YYYY-MM-DDTHH:MM:SS)")
+    description: Optional[str] = Field(default=None, description="Event description/notes")
+    location: Optional[str] = Field(default=None, description="Event location")
+    attendees: Optional[list] = Field(default=None, description="List of attendee email addresses")
+    calendar_name: str = Field(default="primary", description="Target calendar name")
+    all_day: bool = Field(default=False, description="Whether this is an all-day event")
+
+
 class TodoInput(BaseModel):
     """Input schema for todo tool.""" 
     bucket: str = Field(default="work", description="Todo bucket: 'work', 'home', 'errands', or 'personal'")
@@ -160,6 +172,74 @@ class CalendarRangeTool(BaseTool):
     def _run(self, start_date: str, end_date: str) -> str:
         """Sync wrapper for async call."""
         return asyncio.run(self._arun(start_date, end_date))
+
+
+class CalendarCreateTool(BaseTool):
+    """Tool to create new calendar events."""
+    
+    name: str = "create_calendar_event"
+    description: str = "Create a new calendar event. Use when users want to schedule meetings, appointments, or events. Supports conflict detection and natural language parsing."
+    args_schema: Type[BaseModel] = CalendarCreateInput
+    
+    def _get_mcp_client(self) -> MCPClient:
+        """Get MCP client instance."""
+        return MCPClient()
+    
+    async def _arun(self, title: str, start_time: str, end_time: str, 
+                   description: Optional[str] = None, location: Optional[str] = None,
+                   attendees: Optional[list] = None, calendar_name: str = "primary",
+                   all_day: bool = False) -> str:
+        """Create a new calendar event."""
+        try:
+            client = self._get_mcp_client()
+            
+            # Prepare the data for the MCP server
+            event_data = {
+                "title": title,
+                "start_time": start_time,
+                "end_time": end_time,
+                "description": description,
+                "location": location,
+                "attendees": attendees,
+                "calendar_name": calendar_name,
+                "all_day": all_day
+            }
+            
+            # Remove None values
+            event_data = {k: v for k, v in event_data.items() if v is not None}
+            
+            result = await client.call_tool("calendar.create_event", event_data)
+            
+            if result.get('success'):
+                message = result.get('message', 'Event created successfully')
+                conflicts = result.get('conflicts', [])
+                
+                if conflicts:
+                    conflict_details = []
+                    for conflict in conflicts:
+                        conflict_details.append(f"- {conflict.get('title', 'Unknown')} at {conflict.get('start_time', 'Unknown time')}")
+                    
+                    message += f"\\n\\n⚠️ Conflicts detected:\\n" + "\\n".join(conflict_details)
+                    message += "\\n\\nYou may want to reschedule one of these events."
+                
+                # Add event URL if available
+                if result.get('event_url'):
+                    message += f"\\n\\n📅 View event: {result['event_url']}"
+                
+                return message
+            else:
+                return f"❌ Failed to create event: {result.get('message', 'Unknown error')}"
+                
+        except Exception as e:
+            return f"❌ Error creating calendar event: {str(e)}"
+    
+    def _run(self, title: str, start_time: str, end_time: str, 
+             description: Optional[str] = None, location: Optional[str] = None,
+             attendees: Optional[list] = None, calendar_name: str = "primary",
+             all_day: bool = False) -> str:
+        """Sync wrapper for async call."""
+        return asyncio.run(self._arun(title, start_time, end_time, description, 
+                                    location, attendees, calendar_name, all_day))
 
 
 class TodoTool(BaseTool):
@@ -343,6 +423,7 @@ def get_all_tools():
         WeatherTool(),
         CalendarTool(),
         CalendarRangeTool(),
+        CalendarCreateTool(),
         TodoTool(),
         CommuteTool(),
         FinancialTool(),

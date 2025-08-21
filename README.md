@@ -1,25 +1,43 @@
-# 🤖 Morning Routine AI Agent
+# 🤖 Daily AI Assistant Agent
 
-An intelligent AI agent that provides personalized morning briefings by orchestrating tools from your deployed [MCP server](../daily-mcp-server/). Combines **real weather data**, **live financial markets**, **calendar, todos, and commute information** to create comprehensive morning summaries.
+An intelligent AI agent that acts as your **personal productivity assistant**, orchestrating tools from your deployed [MCP server](../daily-mcp-server/) to provide comprehensive daily management. Features both **information retrieval** and **action taking** capabilities.
 
-🎯 **What makes this special?** This isn't just another chatbot - it's a **production-ready AI system** that demonstrates:
+## 🎉 **NEW: Calendar Event Creation!**
 
-- **Real API integration** (OpenWeatherMap, Alpha Vantage, CoinGecko) with **realistic mock data**
-- **LangChain tool orchestration** with **parallel execution** for speed
-- **Natural language conversations** that **intelligently select tools**
-- **Beautiful CLI interface** with **structured output**
-- **Proper error handling** and **graceful fallbacks**
+✨ **Phase 1.5 Complete** - AI can now create calendar events through natural language!
 
-## ✨ Features
+🎯 **What makes this special?** This isn't just another chatbot - it's a **production-ready AI assistant** that:
+
+- **Creates real calendar events** through conversational AI
+- **Orchestrates 8 specialized tools** with intelligent routing
+- **Provides smart conflict detection** when scheduling meetings
+- **Integrates live APIs** (Google Calendar, OpenWeatherMap, financial markets)
+- **Uses LangChain + GPT-4o-mini** for optimal cost/performance
+- **Runs in production** with FastAPI backend and CLI interface
+
+## ✨ Enhanced Features
+
+### 🗣️ **Conversational Calendar Management**
+
+- **"Schedule lunch with John tomorrow at noon"** → Creates actual Google Calendar event
+- **Smart conflict detection** → Warns about overlapping meetings
+- **Multi-calendar support** → Target work, personal, family calendars
+- **Natural language parsing** → Understands dates, times, and context
+
+### 📊 **Comprehensive Data Access**
 
 - 🌤️ **Real Weather Data** - Live forecasts from OpenWeatherMap
-- 💰 **Live Financial Markets** - Real-time stocks & crypto from Alpha Vantage & CoinGecko
-- ✅ **Smart Todo Management** - Prioritized task lists
-- 📅 **Calendar Integration** - Today's events and meetings
-- 🚗 **Commute Information** - Travel time and route suggestions
-- ⚡ **Lightning Fast** - Parallel tool execution (~3 seconds)
-- 🎨 **Beautiful CLI** - Rich formatting with tables and panels
-- 🤖 **AI-Powered** - Natural language conversations with OpenAI
+- 💰 **Live Financial Markets** - Real-time stocks & crypto prices
+- 📅 **Calendar Integration** - Multi-calendar events with Google Calendar
+- ✅ **Smart Todo Management** - Prioritized task lists with filtering
+- 🚗 **Commute Information** - Real-time traffic and route data
+
+### 🤖 **Advanced AI Capabilities**
+
+- **Tool Selection Intelligence** - GPT-4o-mini chooses optimal tools
+- **Parallel Execution** - Multiple operations simultaneously
+- **Context Awareness** - Remembers conversation flow
+- **Error Recovery** - Graceful handling of API failures
 
 ## 🚀 Quick Start
 
@@ -81,6 +99,7 @@ uv run daily-ai-agent smart-briefing    # AI-powered conversational briefing
 # Natural language conversations
 uv run daily-ai-agent chat -m "What's my day looking like?"
 uv run daily-ai-agent chat -m "Should I wear a jacket today?"
+uv run daily-ai-agent chat -m "Schedule lunch with John tomorrow at 1pm"  # 🆕 Calendar creation!
 uv run daily-ai-agent chat              # Interactive chat mode
 
 # Demo all features
@@ -157,6 +176,23 @@ You: Should I wear a jacket today?
 🤖 Thinking...
 Assistant: Today in San Francisco, the weather is expected to be warm with a high of 77.4°F and a low of 56.6°F. Since it's a bit on the warmer side, you might not need a jacket, but it could be a good idea to have one handy for the cooler morning or evening.
 
+$ uv run daily-ai-agent chat -m "Schedule lunch with John tomorrow at 1pm"
+
+You: Schedule lunch with John tomorrow at 1pm
+🤖 Thinking...
+Assistant: ✅ **Event Created Successfully!**
+
+I've created a lunch meeting for you:
+- **Title**: Lunch with John
+- **Time**: Tomorrow, January 16th, 1:00 PM - 2:00 PM
+- **Calendar**: Primary
+- **Event ID**: abc123xyz
+- **URL**: https://calendar.google.com/calendar/event?eid=abc123xyz
+
+✅ **No conflicts detected** - your calendar is free at that time!
+
+The event has been added to your Google Calendar and John will receive an invitation.
+
 $ uv run daily-ai-agent chat -m "How's Microsoft stock doing?"
 
 You: How's Microsoft stock doing?
@@ -219,11 +255,12 @@ $ uv run daily-ai-agent health
 │   AI Agent Layer   │ ──────────────> │   MCP Server         │
 │   (This Project)   │                 │   (Railway Deployed) │
 │                     │                 │                      │
-│ • CLI Interface     │                 │ • Weather API        │
-│ • Tool Orchestrator │                 │ • Financial API      │
-│ • LangChain Agent   │                 │ • Calendar (Mock)    │
-│ • OpenAI ChatGPT    │                 │ • Todos (Mock)       │
-│                     │                 │ • Mobility (Mock)    │
+│ • FastAPI Server    │                 │ • 6 Tools (5R + 1W)  │
+│ • CLI Interface     │                 │ • Weather API ✅      │
+│ • Tool Orchestrator │                 │ • Financial API ✅    │
+│ • LangChain Agent   │                 │ • Calendar R/W ✅     │
+│ • GPT-4o-mini       │                 │ • Todos (Mock) 🔄     │
+│                     │                 │ • Mobility API ✅     │
 └─────────────────────┘                 └──────────────────────┘
 ```
 
@@ -283,35 +320,46 @@ def my_command():
 | `commute [origin] [dest]` | Get commute info                   | `uv run daily-ai-agent commute`                  |
 | `briefing [date]`         | Basic morning briefing             | `uv run daily-ai-agent briefing`                 |
 | `smart-briefing`          | AI-powered conversational briefing | `uv run daily-ai-agent smart-briefing`           |
-| `chat -m "message"`       | Natural language conversation      | `uv run daily-ai-agent chat -m "What's urgent?"` |
+| `chat -m "message"`       | Natural language conversation      | `uv run daily-ai-agent chat -m "Schedule lunch"` |
 | `chat`                    | Interactive chat mode              | `uv run daily-ai-agent chat`                     |
 | `demo`                    | Run feature demonstration          | `uv run daily-ai-agent demo`                     |
 
+### 🆕 **Calendar Creation Examples** (via chat)
+
+- `chat -m "Schedule lunch with John tomorrow at 1pm"`
+- `chat -m "Book dentist appointment next Tuesday at 3pm"`
+- `chat -m "Create team meeting Friday 2-3pm in Conference Room A"`
+- `chat -m "Set up workout session this weekend"`
+
 ## 🚀 Roadmap
 
-### ✅ Completed
+### ✅ **Phase 1.5 Complete** (Calendar Creation)
 
-- [x] MCP server integration
-- [x] Parallel tool execution
-- [x] Rich CLI interface
-- [x] Error handling and logging
-- [x] Health checks
-- [x] Natural language conversations with OpenAI
-- [x] LangChain tool selection and orchestration
-- [x] AI-powered morning briefings
+- [x] MCP server integration with 6 tools
+- [x] Calendar event creation via natural language
+- [x] Smart conflict detection for scheduling
+- [x] Multi-calendar support (Primary, Runna, Family)
+- [x] LangChain + GPT-4o-mini tool orchestration
+- [x] FastAPI server + CLI interface
+- [x] Real Google Calendar integration
+- [x] Production deployment (Railway + Vercel)
 
-### 🔄 In Progress
+### 🔄 **Phase 2 In Progress** (Enhanced Intelligence)
 
+- [ ] Smart scheduling - AI suggests optimal meeting times
+- [ ] Calendar update/delete operations
+- [ ] Natural language time parsing ("next Tuesday", "in 2 hours")
 - [ ] Conversation memory and context
-- [ ] Learning from user preferences
+- [ ] Todo write operations (create, update, complete)
 
-### 🔮 Planned
+### 🔮 **Future Phases** (Advanced Features)
 
-- [ ] Web API for frontend integration
-- [ ] Slack bot integration
-- [ ] Proactive notifications
-- [ ] Learning user preferences
-- [ ] Mobile app support
+- [ ] Multi-tenancy and user management
+- [ ] Proactive notifications and reminders
+- [ ] Voice integration (speech-to-text)
+- [ ] Team collaboration features
+- [ ] Mobile app integration
+- [ ] Slack/Teams bot integration
 
 ## 🤝 Integration
 
