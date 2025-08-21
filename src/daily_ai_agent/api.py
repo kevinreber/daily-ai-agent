@@ -140,6 +140,10 @@ def create_app(testing: bool = False) -> Flask:
                   type: string
                   example: "What's my day looking like?"
                   description: "Natural language query to the AI assistant"
+                session_id:
+                  type: string
+                  example: "550e8400-e29b-41d4-a716-446655440000"
+                  description: "Optional session ID for conversation continuity"
         responses:
           200:
             description: AI assistant response
@@ -149,6 +153,12 @@ def create_app(testing: bool = False) -> Flask:
                 response:
                   type: string
                   example: "Today you should focus on your 3 pending tasks. Weather is nice at 77°F!"
+                session_id:
+                  type: string
+                  example: "550e8400-e29b-41d4-a716-446655440000"
+                new_session:
+                  type: boolean
+                  example: false
                 timestamp:
                   type: string
                   example: "2025-08-11T00:16:05.255826"
@@ -166,17 +176,24 @@ def create_app(testing: bool = False) -> Flask:
             if not message:
                 raise BadRequest("Message cannot be empty")
             
+            session_id = data.get('session_id')  # Optional session ID
+            
             if not orchestrator.is_conversational():
                 return jsonify({
                     "error": "Conversational AI not available",
                     "message": "OpenAI API key required for chat functionality"
                 }), 503
             
-            logger.info(f"Chat request: {message}")
-            response = await orchestrator.chat(message)
+            chat_result = await orchestrator.chat(message, session_id)
+            
+            # Log with the actual session info
+            session_status = "new" if chat_result["new_session"] else "existing"
+            logger.info(f"Chat request: {message} (session: {chat_result['session_id'][:8]}... [{session_status}])")
             
             return jsonify({
-                "response": response,
+                "response": chat_result["response"],
+                "session_id": chat_result["session_id"],
+                "new_session": chat_result["new_session"],
                 "timestamp": datetime.now().isoformat()
             })
             
@@ -499,6 +516,193 @@ def create_app(testing: bool = False) -> Flask:
             logger.error(f"Financial error: {e}")
             return jsonify({"error": str(e)}), 500
     
+    @app.route('/sessions', methods=['POST'])
+    @limiter.limit("20 per minute")
+    def create_session():
+        """Create a new conversation session
+        ---
+        tags:
+          - Session Management
+        parameters:
+          - name: body
+            in: body
+            required: false
+            schema:
+              type: object
+              properties:
+                metadata:
+                  type: object
+                  description: "Optional metadata for the session"
+        responses:
+          200:
+            description: Session created successfully
+            schema:
+              type: object
+              properties:
+                session_id:
+                  type: string
+                  example: "550e8400-e29b-41d4-a716-446655440000"
+                created_at:
+                  type: string
+                  example: "2025-08-11T00:16:05.255826"
+          503:
+            description: Memory not enabled
+        """
+        try:
+            if not settings.enable_memory:
+                return jsonify({
+                    "error": "Memory not enabled",
+                    "message": "Chat memory is disabled in configuration"
+                }), 503
+            
+            data = request.get_json() or {}
+            metadata = data.get('metadata', {})
+            
+            session_id = orchestrator.create_session(metadata)
+            
+            return jsonify({
+                "session_id": session_id,
+                "created_at": datetime.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f"Session creation error: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/sessions/<session_id>', methods=['GET'])
+    @limiter.limit("30 per minute")
+    def get_session_info(session_id: str):
+        """Get session information and statistics
+        ---
+        tags:
+          - Session Management
+        parameters:
+          - name: session_id
+            in: path
+            type: string
+            required: true
+            description: "Session ID"
+        responses:
+          200:
+            description: Session information
+            schema:
+              type: object
+              properties:
+                session_id:
+                  type: string
+                created_at:
+                  type: string
+                last_activity:
+                  type: string
+                message_count:
+                  type: integer
+                metadata:
+                  type: object
+          404:
+            description: Session not found
+          503:
+            description: Memory not enabled
+        """
+        try:
+            if not settings.enable_memory:
+                return jsonify({
+                    "error": "Memory not enabled",
+                    "message": "Chat memory is disabled in configuration"
+                }), 503
+            
+            session_info = orchestrator.get_session_info(session_id)
+            if not session_info:
+                return jsonify({"error": "Session not found"}), 404
+            
+            return jsonify(session_info)
+            
+        except Exception as e:
+            logger.error(f"Session info error: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/sessions/<session_id>', methods=['DELETE'])
+    @limiter.limit("20 per minute")
+    def delete_session(session_id: str):
+        """Delete a conversation session
+        ---
+        tags:
+          - Session Management
+        parameters:
+          - name: session_id
+            in: path
+            type: string
+            required: true
+            description: "Session ID"
+        responses:
+          200:
+            description: Session deleted successfully
+          404:
+            description: Session not found
+          503:
+            description: Memory not enabled
+        """
+        try:
+            if not settings.enable_memory:
+                return jsonify({
+                    "error": "Memory not enabled",
+                    "message": "Chat memory is disabled in configuration"
+                }), 503
+            
+            success = orchestrator.delete_session(session_id)
+            if not success:
+                return jsonify({"error": "Session not found"}), 404
+            
+            return jsonify({"message": "Session deleted successfully"})
+            
+        except Exception as e:
+            logger.error(f"Session deletion error: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/sessions', methods=['GET'])
+    @limiter.limit("30 per minute")
+    def list_sessions():
+        """List all active conversation sessions
+        ---
+        tags:
+          - Session Management
+        responses:
+          200:
+            description: List of active sessions
+            schema:
+              type: object
+              properties:
+                sessions:
+                  type: array
+                  items:
+                    type: string
+                count:
+                  type: integer
+                memory_stats:
+                  type: object
+          503:
+            description: Memory not enabled
+        """
+        try:
+            if not settings.enable_memory:
+                return jsonify({
+                    "error": "Memory not enabled",
+                    "message": "Chat memory is disabled in configuration"
+                }), 503
+            
+            sessions = orchestrator.list_sessions()
+            memory_stats = orchestrator.get_memory_stats()
+            
+            return jsonify({
+                "sessions": sessions,
+                "count": len(sessions),
+                "memory_stats": memory_stats,
+                "timestamp": datetime.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f"Session listing error: {e}")
+            return jsonify({"error": str(e)}), 500
+
     @app.route('/tools', methods=['GET'])
     def list_tools():
         """List all available tools and their endpoints."""
@@ -539,8 +743,8 @@ def create_app(testing: bool = False) -> Flask:
                 "chat": {
                     "endpoint": "/chat",
                     "method": "POST",
-                    "description": "Natural language conversation",
-                    "body": {"message": "string"}
+                    "description": "Natural language conversation with memory",
+                    "body": {"message": "string", "session_id": "string (optional)"}
                 },
                 "briefing": {
                     "endpoint": "/briefing",
@@ -549,7 +753,30 @@ def create_app(testing: bool = False) -> Flask:
                     "params": ["type"]
                 }
             },
+            "session_management": {
+                "create_session": {
+                    "endpoint": "/sessions",
+                    "method": "POST",
+                    "description": "Create new conversation session"
+                },
+                "get_session": {
+                    "endpoint": "/sessions/{session_id}",
+                    "method": "GET",
+                    "description": "Get session information"
+                },
+                "delete_session": {
+                    "endpoint": "/sessions/{session_id}",
+                    "method": "DELETE",
+                    "description": "Delete conversation session"
+                },
+                "list_sessions": {
+                    "endpoint": "/sessions",
+                    "method": "GET",
+                    "description": "List all active sessions"
+                }
+            },
             "available": orchestrator.is_conversational(),
+            "memory_enabled": settings.enable_memory,
             "timestamp": datetime.now().isoformat()
         })
     

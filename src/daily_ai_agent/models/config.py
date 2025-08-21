@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     default_llm: str = "openai"
     
     # MCP Server Connection
-    mcp_server_url: str = "http://localhost:8000"  # Default to local development
+    mcp_server_url: str = "https://web-production-66f9.up.railway.app"  # Use production MCP server for testing
     mcp_server_timeout: int = 45  # Increased for Google Calendar API calls
     
     # Agent Configuration

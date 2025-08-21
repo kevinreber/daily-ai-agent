@@ -53,7 +53,7 @@ class CommuteInput(BaseModel):
 
 class FinancialInput(BaseModel):
     """Input schema for financial tool."""
-    symbols: list = Field(description="List of stock/crypto symbols like ['MSFT', 'BTC', 'ETH']")
+    symbols: list = Field(default=None, description="List of stock/crypto symbols like ['MSFT', 'BTC', 'ETH']. If not provided, shows default tracked portfolio: MSFT, NVDA, BTC, ETH, VOO, SMR, GOOGL")
     data_type: str = Field(default="mixed", description="Type: 'stocks', 'crypto', or 'mixed'")
 
 
@@ -321,16 +321,20 @@ class FinancialTool(BaseTool):
     """Tool to get financial data for stocks and cryptocurrencies."""
     
     name: str = "get_financial_data"
-    description: str = "Get financial data for stocks and cryptocurrencies. Use for portfolio updates, market info, or investment tracking."
+    description: str = "Get financial data for stocks and cryptocurrencies. Use when users ask about: stock prices, crypto prices, portfolio data, tracked symbols, market information, instruments we're tracking, what stocks/crypto we monitor, or any financial/investment questions. Default tracked symbols: MSFT, NVDA, BTC, ETH, VOO, SMR, GOOGL."
     args_schema: Type[BaseModel] = FinancialInput
     
     def _get_mcp_client(self) -> MCPClient:
         """Get MCP client instance."""
         return MCPClient()
     
-    async def _arun(self, symbols: list, data_type: str = "mixed") -> str:
+    async def _arun(self, symbols: list = None, data_type: str = "mixed") -> str:
         """Get financial data."""
         try:
+            # Use default symbols if none provided
+            if not symbols:
+                symbols = ["MSFT", "NVDA", "BTC", "ETH", "VOO", "SMR", "GOOGL"]
+            
             client = self._get_mcp_client()
             data = await client.call_tool("financial.get_data", {"symbols": symbols, "data_type": data_type})
             
@@ -363,7 +367,7 @@ class FinancialTool(BaseTool):
         except Exception as e:
             return f"Error getting financial data: {str(e)}"
     
-    def _run(self, symbols: list, data_type: str = "mixed") -> str:
+    def _run(self, symbols: list = None, data_type: str = "mixed") -> str:
         """Sync wrapper for async call."""
         return asyncio.run(self._arun(symbols, data_type))
 

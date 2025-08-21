@@ -3,12 +3,13 @@
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List
 from loguru import logger
 
 from .tools import get_all_tools
 from ..models.config import get_settings
 from ..services.llm import LLMService
+from ..services.memory import get_memory_service
 
 
 class AgentOrchestrator:
@@ -18,6 +19,7 @@ class AgentOrchestrator:
         self.settings = get_settings()
         self.llm_service = LLMService()
         self.tools = get_all_tools()
+        self.memory_service = get_memory_service()
         
         # Initialize LangChain agent if OpenAI is available
         if self.settings.openai_api_key:
@@ -41,8 +43,8 @@ class AgentOrchestrator:
             current_date = datetime.now().strftime("%Y-%m-%d")
             current_day = datetime.now().strftime("%A, %B %d, %Y")
             
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", f"""You are {self.settings.user_name}'s personal morning assistant. 
+            # Create prompt template that can handle conversation context
+            system_message = f"""You are {self.settings.user_name}'s personal morning assistant. 
 You help with their daily routine by providing weather, calendar, todo, and commute information.
 
 IMPORTANT: Today's date is {current_date} ({current_day}). When users ask about "today", "this morning", "my schedule", etc., use this date: {current_date}.
@@ -68,7 +70,14 @@ use the morning briefing tool. For specific questions, use the appropriate indiv
 
 IMPORTANT: When users ask about "work schedule" or "work meetings", they mean their job/professional calendar.
 Currently only personal calendar, Runna (fitness), and Family calendars are available via API.
-If asked about work meetings specifically, explain that work calendar integration requires additional setup."""),
+If asked about work meetings specifically, explain that work calendar integration requires additional setup.
+
+CONVERSATION CONTEXT: You maintain context across our conversation. Reference previous exchanges 
+when relevant, but don't repeat information unnecessarily. Build on our discussion naturally.
+{{conversation_context}}"""
+
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system_message),
                 ("human", "{input}"),
                 ("placeholder", "{agent_scratchpad}")
             ])
@@ -83,32 +92,72 @@ If asked about work meetings specifically, explain that work calendar integratio
             logger.error(f"Error initializing LangChain agent: {e}")
             self.agent = None
     
-    async def chat(self, user_input: str) -> str:
+    async def chat(self, user_input: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Handle a conversational input from the user.
         
         Args:
             user_input: Natural language input from user
+            session_id: Optional conversation session ID for memory
             
         Returns:
-            AI assistant response
+            Dictionary with response and session info
         """
         if not self.agent:
-            return "I need an OpenAI API key to have conversations. Try the specific commands like 'briefing' or 'weather' instead!"
+            return {
+                "response": "I need an OpenAI API key to have conversations. Try the specific commands like 'briefing' or 'weather' instead!",
+                "session_id": session_id,
+                "new_session": False
+            }
         
         try:
             logger.info(f"Processing user input: {user_input}")
             
+            # Handle session management
+            new_session = False
+            if not session_id:
+                session_id = self.memory_service.create_session()
+                new_session = True
+                logger.info(f"Created new session: {session_id}")
+            
+            # Get conversation history
+            conversation_context = ""
+            if self.settings.enable_memory:
+                conversation_history = self.memory_service.get_conversation_context(session_id, limit=10)
+                if conversation_history:
+                    conversation_context = conversation_history
+                    logger.debug(f"Retrieved conversation context: {len(conversation_context)} chars")
+            
+            # Prepare agent input with conversation context
+            agent_input = {
+                "input": user_input,
+                "conversation_context": conversation_context
+            }
+            
             # Use the agent to process the input
-            result = await self.agent.ainvoke({"input": user_input})
+            result = await self.agent.ainvoke(agent_input)
             response = result.get("output", "I'm not sure how to help with that.")
             
+            # Store the conversation in memory
+            if self.settings.enable_memory:
+                self.memory_service.add_message(session_id, "user", user_input)
+                self.memory_service.add_message(session_id, "assistant", response)
+                logger.debug(f"Stored conversation in session: {session_id}")
+            
             logger.info("Successfully generated response")
-            return response
+            return {
+                "response": response,
+                "session_id": session_id,
+                "new_session": new_session
+            }
             
         except Exception as e:
             logger.error(f"Error in chat processing: {e}")
-            return f"Sorry, I encountered an error: {str(e)}"
+            return {
+                "response": f"Sorry, I encountered an error: {str(e)}",
+                "session_id": session_id,
+                "new_session": new_session if 'new_session' in locals() else False
+            }
     
     async def get_smart_briefing(self) -> str:
         """
@@ -142,3 +191,23 @@ If asked about work meetings specifically, explain that work calendar integratio
     def is_conversational(self) -> bool:
         """Check if conversational features are available."""
         return self.agent is not None
+
+    def create_session(self, metadata: Optional[Dict[str, Any]] = None) -> str:
+        """Create a new conversation session."""
+        return self.memory_service.create_session(metadata)
+
+    def delete_session(self, session_id: str) -> bool:
+        """Delete a conversation session."""
+        return self.memory_service.delete_session(session_id)
+
+    def get_session_info(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Get session information and statistics."""
+        return self.memory_service.get_session_info(session_id)
+
+    def list_sessions(self) -> List[str]:
+        """List all active conversation sessions."""
+        return self.memory_service.list_sessions(active_only=True)
+
+    def get_memory_stats(self) -> Dict[str, Any]:
+        """Get memory service statistics."""
+        return self.memory_service.get_stats()
