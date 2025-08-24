@@ -57,7 +57,9 @@ You have access to these tools:
 - get_calendar: Get calendar events for a single date (use YYYY-MM-DD format, today is {current_date})
 - get_calendar_range: Get calendar events for a date range (MUCH more efficient for week queries)
 - get_todos: Get todo/task lists
-- get_commute: Get travel information
+- get_commute: Get basic travel information between any two locations
+- get_commute_options: Get comprehensive work commute analysis with driving vs transit (Caltrain + shuttle) options, real-time traffic, and AI recommendations
+- get_shuttle_schedule: Get MV Connector shuttle schedules for LinkedIn campus transportation
 - get_morning_briefing: Get complete morning summary
 
 IMPORTANT: For week/multi-day queries, ALWAYS use get_calendar_range instead of multiple get_calendar calls. 

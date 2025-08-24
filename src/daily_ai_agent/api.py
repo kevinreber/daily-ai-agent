@@ -392,6 +392,71 @@ def create_app(testing: bool = False) -> Flask:
             logger.error(f"Commute error: {e}")
             return jsonify({"error": str(e)}), 500
     
+    @app.route('/tools/commute-options', methods=['POST'])
+    async def get_commute_options():
+        """
+        Get comprehensive commute options with driving and transit analysis.
+        
+        JSON body:
+        - direction: 'to_work' or 'from_work'
+        - departure_time: Optional time in HH:MM AM/PM format
+        - include_driving: Optional bool (default: true)
+        - include_transit: Optional bool (default: true)
+        """
+        try:
+            data = request.get_json() or {}
+            direction = data.get('direction', 'to_work')
+            departure_time = data.get('departure_time')
+            include_driving = data.get('include_driving', True)
+            include_transit = data.get('include_transit', True)
+            
+            logger.info(f"Commute options request: {direction}, departure_time={departure_time}")
+            commute_data = await mcp_client.get_commute_options(
+                direction, departure_time, include_driving, include_transit
+            )
+            
+            return jsonify({
+                "tool": "commute_options",
+                "data": commute_data,
+                "timestamp": datetime.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f"Commute options error: {e}")
+            return jsonify({"error": str(e)}), 500
+    
+    @app.route('/tools/shuttle', methods=['POST'])
+    async def get_shuttle_schedule():
+        """
+        Get MV Connector shuttle schedule.
+        
+        JSON body:
+        - origin: 'mountain_view_caltrain', 'linkedin_transit_center', 'linkedin_950_1000'
+        - destination: 'mountain_view_caltrain', 'linkedin_transit_center', 'linkedin_950_1000'
+        - departure_time: Optional time in HH:MM AM/PM format
+        """
+        try:
+            data = request.get_json() or {}
+            origin = data.get('origin')
+            destination = data.get('destination')
+            departure_time = data.get('departure_time')
+            
+            if not origin or not destination:
+                return jsonify({"error": "origin and destination are required"}), 400
+            
+            logger.info(f"Shuttle schedule request: {origin} -> {destination}, departure_time={departure_time}")
+            shuttle_data = await mcp_client.get_shuttle_schedule(origin, destination, departure_time)
+            
+            return jsonify({
+                "tool": "shuttle",
+                "data": shuttle_data,
+                "timestamp": datetime.now().isoformat()
+            })
+            
+        except Exception as e:
+            logger.error(f"Shuttle schedule error: {e}")
+            return jsonify({"error": str(e)}), 500
+    
     @app.route('/tools/financial', methods=['POST'])
     async def get_financial():
         """Get real-time stock and cryptocurrency market data
@@ -525,8 +590,20 @@ def create_app(testing: bool = False) -> Flask:
                 "commute": {
                     "endpoint": "/tools/commute",
                     "method": "GET",
-                    "description": "Get commute information", 
+                    "description": "Get basic commute information", 
                     "params": ["origin", "destination", "mode"]
+                },
+                "commute_options": {
+                    "endpoint": "/tools/commute-options",
+                    "method": "POST",
+                    "description": "Get comprehensive commute analysis with driving vs transit options",
+                    "body": ["direction", "departure_time", "include_driving", "include_transit"]
+                },
+                "shuttle": {
+                    "endpoint": "/tools/shuttle",
+                    "method": "POST", 
+                    "description": "Get MV Connector shuttle schedule",
+                    "body": ["origin", "destination", "departure_time"]
                 },
                 "financial": {
                     "endpoint": "/tools/financial",

@@ -88,12 +88,34 @@ class MCPClient:
         })
     
     async def get_commute(self, origin: str, destination: str, mode: str = "driving") -> Dict[str, Any]:
-        """Get commute information between locations."""
+        """Get basic commute information between locations."""
         return await self.call_tool("mobility.get_commute", {
             "origin": origin,
             "destination": destination,
             "mode": mode
         })
+    
+    async def get_commute_options(self, direction: str, departure_time: str = None, 
+                                include_driving: bool = True, include_transit: bool = True) -> Dict[str, Any]:
+        """Get comprehensive commute options with driving and transit (Caltrain + shuttle)."""
+        params = {
+            "direction": direction,
+            "include_driving": include_driving,
+            "include_transit": include_transit
+        }
+        if departure_time:
+            params["departure_time"] = departure_time
+        return await self.call_tool("mobility.get_commute_options", params)
+    
+    async def get_shuttle_schedule(self, origin: str, destination: str, departure_time: str = None) -> Dict[str, Any]:
+        """Get MV Connector shuttle schedule between stops."""
+        params = {
+            "origin": origin,
+            "destination": destination
+        }
+        if departure_time:
+            params["departure_time"] = departure_time
+        return await self.call_tool("mobility.get_shuttle_schedule", params)
     
     async def get_all_morning_data(self, date: str) -> Dict[str, Any]:
         """
@@ -112,7 +134,7 @@ class MCPClient:
             self.get_weather(settings.user_location),
             self.get_calendar_events(date),
             self.get_todos("work"),
-            self.get_commute(settings.default_commute_origin, settings.default_commute_destination)
+            self.get_commute_options("to_work")  # Use enhanced commute options for morning briefing
         ]
         
         try:

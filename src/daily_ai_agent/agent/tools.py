@@ -45,10 +45,25 @@ class TodoInput(BaseModel):
 
 
 class CommuteInput(BaseModel):
-    """Input schema for commute tool."""
+    """Input schema for basic commute tool."""
     origin: str = Field(description="Starting location")
     destination: str = Field(description="Destination location")
     mode: str = Field(default="driving", description="Transport mode: 'driving', 'transit', 'bicycling', 'walking'")
+
+
+class CommuteOptionsInput(BaseModel):
+    """Input schema for comprehensive commute options tool."""
+    direction: str = Field(description="Commute direction: 'to_work' or 'from_work'")
+    departure_time: Optional[str] = Field(default=None, description="Departure time in HH:MM AM/PM format")
+    include_driving: bool = Field(default=True, description="Include driving option")
+    include_transit: bool = Field(default=True, description="Include transit/public transport option")
+
+
+class ShuttleScheduleInput(BaseModel):
+    """Input schema for shuttle schedule tool."""
+    origin: str = Field(description="Starting shuttle stop: 'mountain_view_caltrain', 'linkedin_transit_center', 'linkedin_950_1000'")
+    destination: str = Field(description="Destination shuttle stop: 'mountain_view_caltrain', 'linkedin_transit_center', 'linkedin_950_1000'")
+    departure_time: Optional[str] = Field(default=None, description="Departure time in HH:MM AM/PM format")
 
 
 class FinancialInput(BaseModel):
@@ -293,10 +308,10 @@ class TodoTool(BaseTool):
 
 
 class CommuteTool(BaseTool):
-    """Tool to get commute information."""
+    """Tool to get basic commute information between any two locations."""
     
     name: str = "get_commute"
-    description: str = "Get commute/travel information between locations. Use when users ask about travel time, routes, or transportation."
+    description: str = "Get basic commute/travel information between any two locations. Use when users ask about travel time between specific places."
     args_schema: Type[BaseModel] = CommuteInput
     
     def _get_mcp_client(self) -> MCPClient:
@@ -308,13 +323,131 @@ class CommuteTool(BaseTool):
         try:
             client = self._get_mcp_client()
             data = await client.get_commute(origin, destination, mode)
-            return f"Commute from {origin} to {destination} ({mode}): {data.get('duration', 'N/A')}, {data.get('distance', 'N/A')}"
+            duration_min = data.get('duration_minutes', 0)
+            distance_miles = data.get('distance_miles', 0)
+            traffic_status = data.get('traffic_status', 'N/A')
+            route_summary = data.get('route_summary', 'N/A')
+            
+            result = f"🚗 {origin} to {destination} ({mode}):\n"
+            result += f"⏱️ Duration: {duration_min} minutes\n"
+            result += f"📏 Distance: {distance_miles} miles\n"
+            result += f"🛣️ Route: {route_summary}\n"
+            if traffic_status != "N/A":
+                result += f"🚦 Traffic: {traffic_status}"
+                
+            return result
         except Exception as e:
             return f"Error getting commute: {str(e)}"
     
     def _run(self, origin: str, destination: str, mode: str = "driving") -> str:
         """Sync wrapper for async call."""
         return asyncio.run(self._arun(origin, destination, mode))
+
+
+class CommuteOptionsTool(BaseTool):
+    """Tool to get comprehensive commute options with driving and transit for work commutes."""
+    
+    name: str = "get_commute_options"
+    description: str = "Get comprehensive commute options comparing driving vs transit (Caltrain + shuttle) for work commutes. Use when users ask about their commute to/from work, best transportation option, or want detailed commute analysis."
+    args_schema: Type[BaseModel] = CommuteOptionsInput
+    
+    def _get_mcp_client(self) -> MCPClient:
+        """Get MCP client instance."""
+        return MCPClient()
+    
+    async def _arun(self, direction: str, departure_time: Optional[str] = None, 
+                   include_driving: bool = True, include_transit: bool = True) -> str:
+        """Get comprehensive commute options."""
+        try:
+            client = self._get_mcp_client()
+            data = await client.get_commute_options(direction, departure_time, include_driving, include_transit)
+            
+            direction_label = "to work" if direction == "to_work" else "from work"
+            result_parts = [f"🚌 Commute options {direction_label}:"]
+            
+            recommendation = data.get('recommendation', 'No recommendation available')
+            result_parts.append(f"\n💡 **Recommendation:** {recommendation}")
+            
+            # Driving option
+            if data.get('driving') and include_driving:
+                driving = data['driving']
+                result_parts.append(f"\n🚗 **Driving:**")
+                result_parts.append(f"   ⏱️ {driving.get('duration_minutes', 'N/A')} minutes")
+                result_parts.append(f"   🛣️ {driving.get('route_summary', 'N/A')}")
+                result_parts.append(f"   🚦 {driving.get('traffic_status', 'N/A')}")
+                result_parts.append(f"   🕐 Depart: {driving.get('departure_time', 'N/A')}")
+                result_parts.append(f"   🏁 Arrive: {driving.get('arrival_time', 'N/A')}")
+            
+            # Transit option
+            if data.get('transit') and include_transit:
+                transit = data['transit']
+                result_parts.append(f"\n🚆 **Transit (Caltrain + Shuttle):**")
+                result_parts.append(f"   ⏱️ Total: {transit.get('total_duration_minutes', 'N/A')} minutes")
+                result_parts.append(f"   🚂 Caltrain: {transit.get('caltrain_duration_minutes', 'N/A')} min")
+                result_parts.append(f"   🚌 Shuttle: {transit.get('shuttle_duration_minutes', 'N/A')} min")
+                
+                # Next departures
+                next_departures = transit.get('next_departures', [])
+                if next_departures:
+                    result_parts.append(f"   🕐 Next trains:")
+                    for i, dep in enumerate(next_departures[:2]):
+                        result_parts.append(f"      {i+1}. {dep.get('departure_time', 'N/A')} → {dep.get('arrival_time', 'N/A')} (Train {dep.get('train_number', 'N/A')})")
+            
+            return "\n".join(result_parts)
+        except Exception as e:
+            return f"Error getting commute options: {str(e)}"
+    
+    def _run(self, direction: str, departure_time: Optional[str] = None, 
+             include_driving: bool = True, include_transit: bool = True) -> str:
+        """Sync wrapper for async call."""
+        return asyncio.run(self._arun(direction, departure_time, include_driving, include_transit))
+
+
+class ShuttleTool(BaseTool):
+    """Tool to get MV Connector shuttle schedules."""
+    
+    name: str = "get_shuttle_schedule"
+    description: str = "Get MV Connector shuttle schedule between stops (Mountain View Caltrain, LinkedIn Transit Center). Use when users ask about shuttle times or LinkedIn campus transportation."
+    args_schema: Type[BaseModel] = ShuttleScheduleInput
+    
+    def _get_mcp_client(self) -> MCPClient:
+        """Get MCP client instance."""
+        return MCPClient()
+    
+    async def _arun(self, origin: str, destination: str, departure_time: Optional[str] = None) -> str:
+        """Get shuttle schedule."""
+        try:
+            client = self._get_mcp_client()
+            data = await client.get_shuttle_schedule(origin, destination, departure_time)
+            
+            # Format stop names for display
+            stop_names = {
+                'mountain_view_caltrain': 'Mountain View Caltrain',
+                'linkedin_transit_center': 'LinkedIn Transit Center',
+                'linkedin_950_1000': 'LinkedIn 950|1000'
+            }
+            
+            origin_name = stop_names.get(origin, origin)
+            dest_name = stop_names.get(destination, destination)
+            
+            result_parts = [f"🚌 MV Connector: {origin_name} → {dest_name}"]
+            result_parts.append(f"⏱️ Duration: {data.get('duration_minutes', 'N/A')} minutes")
+            result_parts.append(f"🕐 Service hours: {data.get('service_hours', 'N/A')}")
+            result_parts.append(f"⏲️ Frequency: Every {data.get('frequency_minutes', 'N/A')} minutes")
+            
+            next_departures = data.get('next_departures', [])
+            if next_departures:
+                result_parts.append("\n🚏 Next departures:")
+                for i, dep in enumerate(next_departures[:3]):
+                    result_parts.append(f"   {i+1}. {dep.get('departure_time', 'N/A')}")
+            
+            return "\n".join(result_parts)
+        except Exception as e:
+            return f"Error getting shuttle schedule: {str(e)}"
+    
+    def _run(self, origin: str, destination: str, departure_time: Optional[str] = None) -> str:
+        """Sync wrapper for async call."""
+        return asyncio.run(self._arun(origin, destination, departure_time))
 
 
 class FinancialTool(BaseTool):
@@ -401,8 +534,28 @@ class MorningBriefingTool(BaseTool):
                 f"🌤️ Weather: {weather.get('summary', 'N/A')} - {weather.get('temp_hi', 'N/A')}°F",
                 f"📅 Calendar: {calendar.get('total_events', 0)} events today",
                 f"✅ Todos: {todos.get('pending_count', 0)} pending tasks",
-                f"🚗 Commute: {commute.get('duration', 'N/A')} to {commute.get('destination', 'office')}"
             ]
+            
+            # Handle enhanced commute data
+            if isinstance(commute, dict) and 'recommendation' in commute:
+                # Enhanced commute options response
+                recommendation = commute.get('recommendation', 'N/A')
+                driving = commute.get('driving', {})
+                transit = commute.get('transit', {})
+                
+                if driving:
+                    drive_time = driving.get('duration_minutes', 'N/A')
+                    traffic = driving.get('traffic_status', 'N/A')
+                    briefing_parts.append(f"🚗 Driving: {drive_time} min, {traffic}")
+                
+                if transit:
+                    transit_time = transit.get('total_duration_minutes', 'N/A')
+                    briefing_parts.append(f"🚆 Transit: {transit_time} min total")
+                
+                briefing_parts.append(f"💡 Recommendation: {recommendation}")
+            else:
+                # Fallback for basic commute data
+                briefing_parts.append(f"🚗 Commute: {commute.get('duration', 'N/A')} to {commute.get('destination', 'office')}")
             
             # Add financial summary
             if financial_data and 'summary' in financial_data:
@@ -426,6 +579,8 @@ def get_all_tools():
         CalendarCreateTool(),
         TodoTool(),
         CommuteTool(),
+        CommuteOptionsTool(),
+        ShuttleTool(),
         FinancialTool(),
         MorningBriefingTool()
     ]
