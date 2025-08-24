@@ -43,7 +43,7 @@ An intelligent AI agent that acts as your **personal productivity assistant**, o
 - 💰 **Live Financial Markets** - Real-time stocks & crypto prices
 - 📅 **Calendar Integration** - Multi-calendar events with Google Calendar
 - ✅ **Smart Todo Management** - Prioritized task lists with filtering
-- 🚗 **Commute Information** - Real-time traffic and route data
+- 🚗 **Commute Intelligence** - Real-time traffic, transit options, fuel estimates, and AI recommendations
 
 ### 🤖 **Advanced AI Capabilities**
 
