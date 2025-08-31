@@ -80,12 +80,12 @@ class MCPClient:
             "end_date": end_date
         })
     
-    async def get_todos(self, bucket: str = "work", include_completed: bool = False) -> Dict[str, Any]:
-        """Get todo items from a bucket."""
-        return await self.call_tool("todo.list", {
-            "bucket": bucket,
-            "include_completed": include_completed
-        })
+    async def get_todos(self, bucket: Optional[str] = None, include_completed: bool = False) -> Dict[str, Any]:
+        """Get todo items from a bucket or all buckets if bucket is None."""
+        params = {"include_completed": include_completed}
+        if bucket is not None:
+            params["bucket"] = bucket
+        return await self.call_tool("todo.list", params)
     
     async def get_commute(self, origin: str, destination: str, mode: str = "driving") -> Dict[str, Any]:
         """Get basic commute information between locations."""
@@ -133,7 +133,7 @@ class MCPClient:
         tasks = [
             self.get_weather(settings.user_location),
             self.get_calendar_events(date),
-            self.get_todos("work"),
+            self.get_todos("work"),  # Still use "work" for morning briefing
             self.get_commute_options("to_work")  # Use enhanced commute options for morning briefing
         ]
         

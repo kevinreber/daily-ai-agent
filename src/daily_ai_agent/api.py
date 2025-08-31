@@ -320,14 +320,15 @@ def create_app(testing: bool = False) -> Flask:
         Get todo items.
         
         Query params:
-        - bucket: 'work', 'home', 'errands', 'personal' (default: 'work')
+        - bucket: 'work', 'home', 'errands', 'personal' (optional - if omitted, returns all todos)
         - include_completed: true/false (default: false)
         """
         try:
-            bucket = request.args.get('bucket', 'work')
+            bucket = request.args.get('bucket')  # No default - let MCP server handle optional bucket
             include_completed = request.args.get('include_completed', 'false').lower() == 'true'
             
-            logger.info(f"Todos request: {bucket}, include_completed={include_completed}")
+            bucket_label = bucket if bucket else "all"
+            logger.info(f"Todos request: {bucket_label}, include_completed={include_completed}")
             todos_data = await mcp_client.get_todos(bucket, include_completed)
             
             return jsonify({

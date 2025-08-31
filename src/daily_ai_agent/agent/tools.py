@@ -41,7 +41,7 @@ class CalendarCreateInput(BaseModel):
 
 class TodoInput(BaseModel):
     """Input schema for todo tool.""" 
-    bucket: str = Field(default="work", description="Todo bucket: 'work', 'home', 'errands', or 'personal'")
+    bucket: Optional[str] = Field(default=None, description="Todo bucket: 'work', 'home', 'errands', 'personal', or leave empty for all todos")
 
 
 class CommuteInput(BaseModel):
@@ -268,16 +268,17 @@ class TodoTool(BaseTool):
         """Get MCP client instance."""
         return MCPClient()
     
-    async def _arun(self, bucket: str = "work") -> str:
+    async def _arun(self, bucket: Optional[str] = None) -> str:
         """Get todo items."""
         try:
             client = self._get_mcp_client()
             data = await client.get_todos(bucket)
             items = data.get('items', [])
             pending = data.get('pending_count', 0)
+            bucket_label = bucket if bucket else "all"
             
             if pending == 0:
-                return f"No pending {bucket} tasks"
+                return f"No pending {bucket_label} tasks"
             
             # Show high priority items first
             high_priority = [item for item in items if item.get('priority') == 'high']
@@ -294,7 +295,7 @@ class TodoTool(BaseTool):
                 priority = item.get('priority', 'medium').upper()
                 summaries.append(f"• {priority}: {item.get('title', 'N/A')}")
             
-            result = f"{pending} pending {bucket} tasks:\\n" + "\\n".join(summaries)
+            result = f"{pending} pending {bucket_label} tasks:\\n" + "\\n".join(summaries)
             if len(items) > 5:
                 result += f"\\n... and {len(items) - 5} more tasks"
             
@@ -302,7 +303,7 @@ class TodoTool(BaseTool):
         except Exception as e:
             return f"Error getting todos: {str(e)}"
     
-    def _run(self, bucket: str = "work") -> str:
+    def _run(self, bucket: Optional[str] = None) -> str:
         """Sync wrapper for async call."""
         return asyncio.run(self._arun(bucket))
 

@@ -94,7 +94,9 @@ DEFAULT_COMMUTE_ORIGIN=Home
 DEFAULT_COMMUTE_DESTINATION=Office
 ```
 
-### Usage
+### Usage Options
+
+#### 🖥️ **Option 1: CLI Interface** (Great for terminal users)
 
 ```bash
 # Quick health check
@@ -120,7 +122,78 @@ uv run daily-ai-agent chat              # Interactive chat mode
 uv run daily-ai-agent demo
 ```
 
+#### 🌐 **Option 2: API Server** (Great for web apps & integrations)
+
+**Start the API server:**
+
+```bash
+# Start the Flask API server (runs on http://localhost:8001)
+uv run daily-ai-agent-api
+```
+
+The server will start and show available endpoints:
+
+```
+🚀 Starting AI Agent API Server
+📊 Environment: development
+🔧 Debug mode: true
+🤖 AI Features: ✅ Enabled
+🌐 MCP Server: http://localhost:8000
+
+Available endpoints:
+  📋 Health check:     http://localhost:8001/health
+  📚 Swagger UI:       http://localhost:8001/docs
+  🗂️  List tools:       http://localhost:8001/tools
+  💬 Chat API:         POST http://localhost:8001/chat
+  📅 Briefing API:     http://localhost:8001/briefing
+  🌤️  Weather API:      http://localhost:8001/tools/weather
+  ✅ Todos API:        http://localhost:8001/tools/todos
+  📅 Calendar API:     http://localhost:8001/tools/calendar
+  🚗 Commute API:      http://localhost:8001/tools/commute
+```
+
+**API Usage Examples:**
+
+```bash
+# Health check
+curl http://localhost:8001/health
+
+# Get weather
+curl "http://localhost:8001/tools/weather?location=San Francisco&when=today"
+
+# Get todos (with enhanced bucket support!)
+curl "http://localhost:8001/tools/todos?bucket=work"          # Specific bucket
+curl "http://localhost:8001/tools/todos"                     # All todos (no bucket)
+
+# Get calendar events
+curl "http://localhost:8001/tools/calendar?date=2025-01-15"
+
+# Chat with AI (requires OpenAI API key)
+curl -X POST http://localhost:8001/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What's my day looking like?"}'
+
+# Get smart briefing
+curl "http://localhost:8001/briefing?type=smart"
+
+# Get financial data
+curl -X POST http://localhost:8001/tools/financial \
+  -H "Content-Type: application/json" \
+  -d '{"symbols": ["MSFT", "BTC", "ETH"], "data_type": "mixed"}'
+```
+
+**🎯 Interactive API Documentation:**
+
+Visit **http://localhost:8001/docs** for full Swagger UI documentation with:
+
+- ✅ Interactive API testing
+- ✅ Request/response examples
+- ✅ Parameter documentation
+- ✅ Live server testing
+
 ### 🚀 Try It Now (Quick Start)
+
+#### **CLI Interface:**
 
 ```bash
 # 1. Clone and setup
@@ -137,6 +210,23 @@ uv run daily-ai-agent health
 # 4. Try the AI features!
 uv run daily-ai-agent smart-briefing
 uv run daily-ai-agent chat -m "What's my day like?"
+```
+
+#### **API Server:**
+
+```bash
+# 1. Same setup as above (clone, uv sync, .env)
+
+# 2. Start the API server
+uv run daily-ai-agent-api
+
+# 3. Test the API (in another terminal)
+curl http://localhost:8001/health
+curl http://localhost:8001/tools/weather
+curl http://localhost:8001/tools/todos  # ✨ All todos (enhanced!)
+
+# 4. Try the interactive docs
+open http://localhost:8001/docs
 ```
 
 ## 📋 Example Output
@@ -269,13 +359,31 @@ $ uv run daily-ai-agent health
 │   AI Agent Layer   │ ──────────────> │   MCP Server         │
 │   (This Project)   │                 │   (Railway Deployed) │
 │                     │                 │                      │
-│ • FastAPI Server    │                 │ • 6 Tools (5R + 1W)  │
+│ • Flask API Server  │                 │ • 8 Tools (6R + 2W)  │
 │ • CLI Interface     │                 │ • Weather API ✅      │
 │ • Tool Orchestrator │                 │ • Financial API ✅    │
 │ • LangChain Agent   │                 │ • Calendar R/W ✅     │
-│ • GPT-4o-mini       │                 │ • Todos (Mock) 🔄     │
-│                     │                 │ • Mobility API ✅     │
+│ • GPT-4o-mini       │                 │ • Todoist API ✅      │
+│ • Swagger UI        │                 │ • Mobility API ✅     │
+│                     │                 │ • Enhanced Buckets ✨ │
 └─────────────────────┘                 └──────────────────────┘
+          │                                       │
+          │                                       │
+          ▼                                       │
+┌─────────────────────┐                         │
+│   Frontend UI       │ ────────────────────────┘
+│   (Remix/React)     │    Direct MCP Access
+│                     │
+│ • Real-time Updates │
+│ • Bucket Selection  │
+│ • Interactive Chat  │
+│ • Dashboard View    │
+└─────────────────────┘
+
+🔄 **Dual Interface Architecture:**
+• **CLI**: Direct tool access for terminal users
+• **API**: RESTful endpoints for web apps & integrations (Port 8001)
+• **UI**: React dashboard with bucket selection (Port 5173)
 ```
 
 ## 🔧 Development
@@ -313,6 +421,46 @@ uv run pytest
 # Run with coverage
 uv run pytest --cov=daily_ai_agent
 ```
+
+### API Server Development
+
+**Start development server:**
+
+```bash
+# Start with auto-reload (development mode)
+uv run daily-ai-agent-api
+
+# Or with custom configuration
+ENVIRONMENT=development PORT=8001 DEBUG=true uv run daily-ai-agent-api
+```
+
+**Test API endpoints:**
+
+```bash
+# Health check
+curl http://localhost:8001/health
+
+# Weather (GET)
+curl "http://localhost:8001/tools/weather?location=New York&when=today"
+
+# Todos with enhanced bucket support (GET)
+curl "http://localhost:8001/tools/todos"                    # All todos
+curl "http://localhost:8001/tools/todos?bucket=work"       # Work bucket only
+curl "http://localhost:8001/tools/todos?bucket=personal"   # Personal bucket only
+
+# Chat API (POST) - requires OpenAI API key
+curl -X POST http://localhost:8001/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Tell me about my todos and weather"}'
+
+# Smart briefing
+curl "http://localhost:8001/briefing?type=smart"
+```
+
+**Interactive testing:**
+
+- Visit **http://localhost:8001/docs** for Swagger UI
+- All endpoints are documented and testable
 
 ### Add New Commands
 
@@ -385,13 +533,61 @@ This agent connects to your deployed MCP server at:
 - **Tools**: `POST /tools/{tool_name}`
 - **List**: `GET /tools`
 
-### With Frontend (Planned)
+### API Server Endpoints (Port 8001)
 
-The agent will expose REST endpoints for:
+The AI Agent **already exposes** comprehensive REST endpoints:
 
-- **Chat**: `POST /chat`
-- **Briefing**: `GET /briefing`
-- **Tools**: `GET /tools/{tool_name}`
+#### 🤖 **AI Features**
+
+- **Chat**: `POST /chat` - Natural language conversations
+- **Briefing**: `GET /briefing?type=smart` - AI-powered morning briefings
+
+#### 🔧 **Tool Access**
+
+- **Weather**: `GET /tools/weather?location=SF&when=today`
+- **Todos**: `GET /tools/todos?bucket=work` (✨ Enhanced: omit bucket for all todos)
+- **Calendar**: `GET /tools/calendar?date=2025-01-15`
+- **Commute**: `GET /tools/commute?origin=Home&destination=Office`
+- **Financial**: `POST /tools/financial` (body: `{"symbols": ["MSFT", "BTC"]}`)
+- **Commute Options**: `POST /tools/commute-options` - Enhanced commute analysis
+- **Shuttle**: `POST /tools/shuttle` - MV Connector schedules
+
+#### 📊 **System**
+
+- **Health**: `GET /health` - Service health status
+- **Tools List**: `GET /tools` - Available endpoints
+- **Documentation**: `GET /docs` - Interactive Swagger UI
+
+### With Frontend UI
+
+The **daily-agent-ui** project integrates via:
+
+- **API Proxy**: Routes through AI Agent API (avoids CORS)
+- **Real-time Data**: Live updates from MCP server
+- **Enhanced UX**: Bucket selection, chat interface, dashboard views
+
+### Environment Variables
+
+**For API Server:**
+
+```bash
+# Required for AI features
+OPENAI_API_KEY=your_openai_key_here
+
+# Server configuration
+HOST=0.0.0.0                    # Default: 0.0.0.0 (all interfaces)
+PORT=8001                       # Default: 8001
+ENVIRONMENT=development          # development | production
+
+# MCP Server connection
+MCP_SERVER_URL=http://localhost:8000  # Your MCP server URL
+
+# User preferences
+USER_NAME=Kevin
+USER_LOCATION=San Francisco
+DEFAULT_COMMUTE_ORIGIN=Home
+DEFAULT_COMMUTE_DESTINATION=Office
+```
 
 ## 📚 Related Projects
 
