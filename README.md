@@ -605,6 +605,195 @@ DEFAULT_COMMUTE_DESTINATION=Office
 
 MIT License - See LICENSE file for details
 
+## 🛠️ Local Development Setup
+
+### Quick Start for Development
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/yourusername/daily-ai-agent.git
+cd daily-ai-agent
+
+# 2. Copy the local development config
+cp .env.local.example .env
+
+# 3. Edit .env and add your OpenAI API key
+# OPENAI_API_KEY=your_key_here
+
+# 4. Install dependencies
+uv sync --dev
+
+# 5. Start the development server with hot reload
+FLASK_DEBUG=1 uv run daily-ai-agent-api
+```
+
+### Development Server Features
+
+When running in development mode (`ENVIRONMENT=development`):
+- **Hot Reload**: Server restarts on code changes
+- **Debug Logging**: Verbose logging for debugging
+- **Swagger UI**: Interactive API docs at http://localhost:8001/docs
+- **Request IDs**: Every request gets a unique ID for tracing
+
+### Running Tests
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run with coverage report
+uv run pytest --cov=daily_ai_agent --cov-report=html
+
+# Run specific test file
+uv run pytest tests/test_api.py -v
+
+# Run tests matching a pattern
+uv run pytest -k "test_weather" -v
+```
+
+## 🔧 Adding Custom Tools
+
+### Step 1: Create Tool Input Schema
+
+```python
+# In src/daily_ai_agent/agent/tools.py
+
+class MyToolInput(BaseModel):
+    """Input schema for my custom tool."""
+    param1: str = Field(description="Description of parameter 1")
+    param2: int = Field(default=10, description="Optional parameter with default")
+```
+
+### Step 2: Create Tool Class
+
+```python
+class MyCustomTool(BaseTool):
+    """Custom tool description."""
+
+    name: str = "my_custom_tool"
+    description: str = "What this tool does and when to use it"
+    args_schema: Type[BaseModel] = MyToolInput
+
+    def _get_mcp_client(self) -> MCPClient:
+        """Get MCP client instance."""
+        return MCPClient()
+
+    async def _arun(self, param1: str, param2: int = 10) -> str:
+        """Async implementation of the tool."""
+        try:
+            client = self._get_mcp_client()
+            # Call MCP server or implement logic
+            result = await client.call_tool("my_tool.action", {
+                "param1": param1,
+                "param2": param2
+            })
+            return f"Result: {result}"
+        except Exception as e:
+            return f"Error: {str(e)}"
+
+    def _run(self, param1: str, param2: int = 10) -> str:
+        """Sync wrapper for async call."""
+        return asyncio.run(self._arun(param1, param2))
+```
+
+### Step 3: Register Tool
+
+```python
+# In get_all_tools() function
+def get_all_tools():
+    return [
+        WeatherTool(),
+        CalendarTool(),
+        # ... existing tools ...
+        MyCustomTool(),  # Add your new tool
+    ]
+```
+
+### Step 4: Add API Endpoint (Optional)
+
+```python
+# In src/daily_ai_agent/api.py
+
+@app.route('/tools/my-tool', methods=['POST'])
+async def my_tool_endpoint():
+    """My custom tool endpoint."""
+    try:
+        data = request.get_json() or {}
+        # ... implement endpoint logic ...
+        return jsonify({"tool": "my_tool", "data": result})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+```
+
+## ❓ Troubleshooting
+
+### Common Issues
+
+#### MCP Server Connection Failed
+```
+Error: MCP server health check failed
+```
+**Solution:**
+1. Verify MCP server is running: `curl http://localhost:8000/health`
+2. Check `MCP_SERVER_URL` in your `.env` file
+3. Ensure no firewall is blocking the connection
+
+#### OpenAI API Key Missing
+```
+Error: Conversational AI not available
+```
+**Solution:**
+1. Add `OPENAI_API_KEY=your_key` to your `.env` file
+2. Verify the key is valid at https://platform.openai.com
+3. Check API key has sufficient credits
+
+#### CORS Errors in Browser
+```
+Access-Control-Allow-Origin error
+```
+**Solution:**
+1. Add your frontend URL to `ALLOWED_ORIGINS` in `.env`
+2. Format: `ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173`
+3. Restart the API server
+
+#### Rate Limit Exceeded
+```
+Error: 429 Too Many Requests
+```
+**Solution:**
+1. Increase `RATE_LIMIT_PER_MINUTE` in `.env` (default: 60)
+2. Implement client-side rate limiting
+3. Use request batching where possible
+
+#### Import Errors After Updates
+```
+ModuleNotFoundError: No module named 'daily_ai_agent.utils'
+```
+**Solution:**
+1. Reinstall dependencies: `uv sync`
+2. Clear Python cache: `find . -type d -name __pycache__ -exec rm -rf {} +`
+3. Verify Python version: `python --version` (requires 3.13+)
+
+### Debug Mode
+
+Enable verbose logging for troubleshooting:
+
+```bash
+# Set in .env
+DEBUG=true
+LOG_LEVEL=DEBUG
+
+# Or run with environment variables
+DEBUG=true LOG_LEVEL=DEBUG uv run daily-ai-agent-api
+```
+
+### Request Tracing
+
+Every API response includes a `request_id` header and field:
+- Use this ID when reporting issues
+- Correlate logs across services
+- Track requests in monitoring tools
+
 ## 🙋‍♂️ Support
 
 For questions or issues:
