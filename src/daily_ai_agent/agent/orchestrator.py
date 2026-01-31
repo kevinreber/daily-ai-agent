@@ -2,7 +2,7 @@
 
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
 from langchain_openai import ChatOpenAI
 from typing import Dict, Any, List, Optional
 from loguru import logger
@@ -49,7 +49,7 @@ class AgentOrchestrator:
 
         # Initialize conversation memory based on settings or override
         self.enable_memory = enable_memory if enable_memory is not None else self.settings.enable_memory
-        self.chat_history: List[HumanMessage | AIMessage] = []
+        self.chat_history: List[BaseMessage] = []
 
         if self.enable_memory:
             logger.info("Conversation memory enabled")
@@ -223,7 +223,7 @@ Always maintain context from earlier in the conversation."""),
         """Get the number of messages in conversation history."""
         return len(self.chat_history)
 
-    def get_chat_history(self) -> List[HumanMessage | AIMessage]:
+    def get_chat_history(self) -> List[BaseMessage]:
         """Get a copy of the current chat history."""
         return list(self.chat_history)
 

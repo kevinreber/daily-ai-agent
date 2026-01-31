@@ -56,8 +56,10 @@ daily-ai-agent/
 ### Setup
 ```bash
 uv sync                            # Install dependencies (preferred)
+uv sync --extra dev                # Include dev dependencies (pytest, etc.)
 pip install -e .                   # Alternative: pip install
 cp .env.example .env               # Create environment file
+./scripts/setup-hooks.sh           # Install git hooks (runs tests before push)
 ```
 
 ### CLI Commands
