@@ -1,13 +1,21 @@
 """LangChain tools that wrap MCP server calls."""
 
 from langchain_core.tools import BaseTool
-from typing import Dict, Any, Optional, Type
+from typing import Dict, Any, Optional, Type, List
 from pydantic import BaseModel, Field
 from datetime import datetime
 import asyncio
 
 from ..services.mcp_client import MCPClient
 from ..models.config import get_settings
+from ..utils.constants import (
+    FINANCIAL_SYMBOLS,
+    SHUTTLE_STOP_NAMES,
+    MAX_EVENTS_PER_DAY,
+    MAX_HIGH_PRIORITY_TODOS,
+    MAX_OTHER_TODOS,
+    MAX_TOTAL_TODOS_DISPLAY,
+)
 
 
 class WeatherInput(BaseModel):
@@ -421,15 +429,9 @@ class ShuttleTool(BaseTool):
             client = self._get_mcp_client()
             data = await client.get_shuttle_schedule(origin, destination, departure_time)
             
-            # Format stop names for display
-            stop_names = {
-                'mountain_view_caltrain': 'Mountain View Caltrain',
-                'linkedin_transit_center': 'LinkedIn Transit Center',
-                'linkedin_950_1000': 'LinkedIn 950|1000'
-            }
-            
-            origin_name = stop_names.get(origin, origin)
-            dest_name = stop_names.get(destination, destination)
+            # Format stop names for display using constants
+            origin_name = SHUTTLE_STOP_NAMES.get(origin, origin)
+            dest_name = SHUTTLE_STOP_NAMES.get(destination, destination)
             
             result_parts = [f"🚌 MV Connector: {origin_name} → {dest_name}"]
             result_parts.append(f"⏱️ Duration: {data.get('duration_minutes', 'N/A')} minutes")
@@ -519,9 +521,9 @@ class MorningBriefingTool(BaseTool):
             client = self._get_mcp_client()
             data = await client.get_all_morning_data(today)
             
-            # Get financial data for your tracked symbols
+            # Get financial data for tracked symbols from config
             financial_data = await client.call_tool("financial.get_data", {
-                "symbols": ["MSFT", "NVDA", "BTC", "ETH", "VOO", "SMR", "GOOGL"],
+                "symbols": FINANCIAL_SYMBOLS,
                 "data_type": "mixed"
             })
             
