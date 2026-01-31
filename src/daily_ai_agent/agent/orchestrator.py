@@ -1,7 +1,8 @@
 """Main agent orchestrator that handles conversations and tool selection."""
 
 from langchain.agents import create_tool_calling_agent, AgentExecutor
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import HumanMessage, AIMessage
 from langchain_openai import ChatOpenAI
 from typing import Dict, Any, List, Optional
 from loguru import logger
@@ -35,15 +36,25 @@ def clear_tool_cache() -> None:
 class AgentOrchestrator:
     """Main orchestrator for the AI agent."""
 
-    def __init__(self, use_cached_tools: bool = True) -> None:
+    def __init__(self, use_cached_tools: bool = True, enable_memory: Optional[bool] = None) -> None:
         """
         Initialize the agent orchestrator.
 
         Args:
             use_cached_tools: Whether to use cached tools (True for production)
+            enable_memory: Whether to enable conversation memory (defaults to settings.enable_memory)
         """
         self.settings = get_settings()
         self.llm_service = LLMService()
+
+        # Initialize conversation memory based on settings or override
+        self.enable_memory = enable_memory if enable_memory is not None else self.settings.enable_memory
+        self.chat_history: List[HumanMessage | AIMessage] = []
+
+        if self.enable_memory:
+            logger.info("Conversation memory enabled")
+        else:
+            logger.info("Conversation memory disabled")
 
         # Use cached tools by default for better performance
         if use_cached_tools:
@@ -72,7 +83,8 @@ class AgentOrchestrator:
             current_date = datetime.now().strftime("%Y-%m-%d")
             current_day = datetime.now().strftime("%A, %B %d, %Y")
 
-            prompt = ChatPromptTemplate.from_messages([
+            # Build prompt messages - include chat_history placeholder if memory is enabled
+            prompt_messages = [
                 ("system", f"""You are {self.settings.user_name}'s personal morning assistant.
 You help with their daily routine by providing weather, calendar, todo, and commute information.
 
@@ -101,10 +113,23 @@ use the morning briefing tool. For specific questions, use the appropriate indiv
 
 IMPORTANT: When users ask about "work schedule" or "work meetings", they mean their job/professional calendar.
 Currently only personal calendar, Runna (fitness), and Family calendars are available via API.
-If asked about work meetings specifically, explain that work calendar integration requires additional setup."""),
+If asked about work meetings specifically, explain that work calendar integration requires additional setup.
+
+CONVERSATION MEMORY: You have access to the conversation history. When users say things like "yes", "proceed",
+"do it", "go ahead", or reference previous messages, use the chat history to understand what they're referring to.
+Always maintain context from earlier in the conversation."""),
+            ]
+
+            # Add chat history placeholder if memory is enabled
+            if self.enable_memory:
+                prompt_messages.append(MessagesPlaceholder(variable_name="chat_history"))
+
+            prompt_messages.extend([
                 ("human", "{input}"),
                 ("placeholder", "{agent_scratchpad}")
             ])
+
+            prompt = ChatPromptTemplate.from_messages(prompt_messages)
 
             # Create the agent
             agent = create_tool_calling_agent(llm, self.tools, prompt)
@@ -132,9 +157,23 @@ If asked about work meetings specifically, explain that work calendar integratio
         try:
             logger.info(f"Processing user input: {user_input}")
 
+            # Build the invoke payload
+            invoke_payload: Dict[str, Any] = {"input": user_input}
+
+            # Include chat history if memory is enabled
+            if self.enable_memory:
+                invoke_payload["chat_history"] = self.chat_history
+                logger.debug(f"Including {len(self.chat_history)} messages in chat history")
+
             # Use the agent to process the input
-            result = await self.agent.ainvoke({"input": user_input})
+            result = await self.agent.ainvoke(invoke_payload)
             response = result.get("output", "I'm not sure how to help with that.")
+
+            # Store the conversation in memory if enabled
+            if self.enable_memory:
+                self.chat_history.append(HumanMessage(content=user_input))
+                self.chat_history.append(AIMessage(content=response))
+                logger.debug(f"Chat history now has {len(self.chat_history)} messages")
 
             logger.info("Successfully generated response")
             return response
@@ -174,3 +213,20 @@ If asked about work meetings specifically, explain that work calendar integratio
     def is_conversational(self) -> bool:
         """Check if conversational features are available."""
         return self.agent is not None
+
+    def clear_memory(self) -> None:
+        """Clear the conversation history to start a fresh session."""
+        self.chat_history.clear()
+        logger.info("Conversation memory cleared")
+
+    def get_memory_length(self) -> int:
+        """Get the number of messages in conversation history."""
+        return len(self.chat_history)
+
+    def get_chat_history(self) -> List[HumanMessage | AIMessage]:
+        """Get a copy of the current chat history."""
+        return list(self.chat_history)
+
+    def has_memory(self) -> bool:
+        """Check if memory is enabled and has messages stored."""
+        return self.enable_memory and len(self.chat_history) > 0
