@@ -45,14 +45,6 @@ jobs:
         run: |
           uv run pytest tests/test_agent_memory.py -v --tb=short
 
-      - name: Run memory tests with coverage
-        env:
-          ENVIRONMENT: testing
-          OPENAI_API_KEY: test-api-key
-          MCP_SERVER_URL: http://test-mcp-server:8000
-        run: |
-          uv run pytest tests/test_agent_memory.py -v --cov=daily_ai_agent.agent.orchestrator --cov-report=term-missing
-
   all-tests:
     name: Run All Tests
     runs-on: ubuntu-latest
