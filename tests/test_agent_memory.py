@@ -9,7 +9,6 @@ These tests verify that the AI agent can:
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from langchain_core.messages import HumanMessage, AIMessage
 
 
 class TestAgentMemoryBasics:
@@ -62,6 +61,8 @@ class TestAgentMemoryBasics:
 
     def test_clear_memory(self, mock_orchestrator):
         """Test that clear_memory() empties the chat history."""
+        # Import inside test to avoid Pydantic schema generation at module load
+        from langchain_core.messages import HumanMessage, AIMessage
         # Add some messages manually
         mock_orchestrator.chat_history.append(HumanMessage(content="Hello"))
         mock_orchestrator.chat_history.append(AIMessage(content="Hi there!"))
@@ -75,6 +76,7 @@ class TestAgentMemoryBasics:
 
     def test_get_memory_length(self, mock_orchestrator):
         """Test that get_memory_length() returns correct count."""
+        from langchain_core.messages import HumanMessage, AIMessage
         assert mock_orchestrator.get_memory_length() == 0
 
         mock_orchestrator.chat_history.append(HumanMessage(content="Test"))
@@ -85,6 +87,7 @@ class TestAgentMemoryBasics:
 
     def test_get_chat_history_returns_copy(self, mock_orchestrator):
         """Test that get_chat_history() returns a copy, not the original."""
+        from langchain_core.messages import HumanMessage
         mock_orchestrator.chat_history.append(HumanMessage(content="Original"))
 
         history_copy = mock_orchestrator.get_chat_history()
@@ -99,6 +102,7 @@ class TestAgentMemoryBasics:
 
     def test_has_memory_true_when_populated(self, mock_orchestrator):
         """Test has_memory() returns True when messages are stored."""
+        from langchain_core.messages import HumanMessage
         mock_orchestrator.chat_history.append(HumanMessage(content="Test"))
         assert mock_orchestrator.has_memory() is True
 
@@ -114,6 +118,7 @@ class TestAgentMemoryBasics:
             orchestrator = AgentOrchestrator(enable_memory=False)
 
             # Even if we add messages, has_memory should return False
+            from langchain_core.messages import HumanMessage
             orchestrator.chat_history.append(HumanMessage(content="Test"))
             assert orchestrator.has_memory() is False
 
@@ -154,9 +159,10 @@ class TestAgentMemoryWithChat:
         assert orchestrator.get_memory_length() == 2
 
         history = orchestrator.get_chat_history()
-        assert isinstance(history[0], HumanMessage)
+        # Use type name check to avoid Pydantic schema generation issues
+        assert type(history[0]).__name__ == "HumanMessage"
         assert history[0].content == "What's the weather?"
-        assert isinstance(history[1], AIMessage)
+        assert type(history[1]).__name__ == "AIMessage"
         assert history[1].content == "The weather is sunny!"
 
     @pytest.mark.asyncio
@@ -434,6 +440,7 @@ class TestMemoryPersistenceAcrossInstances:
             mock_tools.return_value = []
 
             from daily_ai_agent.agent.orchestrator import AgentOrchestrator
+            from langchain_core.messages import HumanMessage
 
             orchestrator1 = AgentOrchestrator(enable_memory=True)
             orchestrator2 = AgentOrchestrator(enable_memory=True)
